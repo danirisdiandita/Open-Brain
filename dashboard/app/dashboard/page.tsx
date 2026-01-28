@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Brain, LayoutDashboard, Settings, User, LogOut } from "lucide-react";
 import Link from "next/link";
+import { DashboardSidebar } from "@/components/dashboard-sidebar";
 
 export default async function DashboardPage() {
     const session = await auth.api.getSession({
@@ -19,48 +20,7 @@ export default async function DashboardPage() {
 
     return (
         <div className="flex h-screen bg-white text-slate-900 overflow-hidden font-inter">
-            {/* Sidebar */}
-            <aside className="w-64 border-r border-slate-200 flex flex-col bg-slate-50/50">
-                <div className="p-6">
-                    <div className="flex items-center gap-2 text-[#0ea5e9]">
-                        <span className="material-symbols-outlined text-3xl font-bold">psychology</span>
-                        <span className="text-xl font-bold text-slate-900 tracking-tight font-outfit">OpenBrain</span>
-                    </div>
-                </div>
-
-                <nav className="flex-1 px-4 py-4 space-y-1">
-                    <Link href="/dashboard">
-                        <Button variant="ghost" className="w-full justify-start gap-3 bg-white text-zinc-900 hover:bg-zinc-100 border border-zinc-200/50 shadow-sm">
-                            <LayoutDashboard size={18} />
-                            Overview
-                        </Button>
-                    </Link>
-                    <Link href="/profile">
-                        <Button variant="ghost" className="w-full justify-start gap-3 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100">
-                            <User size={18} />
-                            Profile
-                        </Button>
-                    </Link>
-                    <Link href="/settings">
-                        <Button variant="ghost" className="w-full justify-start gap-3 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100">
-                            <Settings size={18} />
-                            Settings
-                        </Button>
-                    </Link>
-                </nav>
-
-                <div className="p-4 border-t border-zinc-200">
-                    <div className="flex items-center gap-3 px-2 py-3 rounded-lg bg-white border border-zinc-200">
-                        <div className="size-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-sm text-white">
-                            {user.name.charAt(0)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{user.name}</p>
-                            <p className="text-xs text-zinc-500 truncate">{user.email}</p>
-                        </div>
-                    </div>
-                </div>
-            </aside>
+            <DashboardSidebar user={user} />
 
             {/* Main Content */}
             <main className="flex-1 overflow-auto p-8 bg-zinc-50/30">

@@ -16,8 +16,50 @@ model User {
   updatedAt     DateTime
   sessions      Session[]
   accounts      Account[]
+  folders       Folder[]
+  notes         Note[]
 
   @@map("user")
+}
+
+model Folder {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Folder?  @relation("SubFolders", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Folder[] @relation("SubFolders")
+  notes     Note[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("folder")
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  title     String
+  content   String?  @db.Text // Store Tiptap JSON string or Yjs state
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId  String?
+  folder    Folder?  @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  versions  NoteVersion[]
+
+  @@map("note")
+}
+
+model NoteVersion {
+  id        String   @id @default(uuid())
+  noteId    String
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  content   String   @db.Text // Base64 encoded Yjs update
+  createdAt DateTime @default(now())
+
+  @@map("note_version")
 }
 
 model Session {
