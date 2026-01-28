@@ -22,11 +22,39 @@ interface EditorProps {
 
 export function Editor({ noteId, initialTitle, userName, provider, ydoc }: EditorProps) {
     const [title, setTitle] = useState(initialTitle);
-    const [status, setStatus] = useState<'connected' | 'connecting' | 'disconnected'>(provider.status as any);
+    const [status, setStatus] = useState<'connected' | 'connecting' | 'disconnected'>(
+        (provider as any).status || (provider.configuration.websocketProvider as any).status || 'connecting'
+    );
+    const [isSynced, setIsSynced] = useState(provider.synced);
+    const [unsyncedChanges, setUnsyncedChanges] = useState(0);
+    const [showSaved, setShowSaved] = useState(false);
     const updateNote = useUpdateNote();
 
     useEffect(() => {
-        provider.on('status', ({ status }: { status: any }) => setStatus(status));
+        const handleStatus = (data: any) => {
+            const newStatus = data?.status || data;
+            if (typeof newStatus === 'string' && ['connected', 'connecting', 'disconnected'].includes(newStatus)) {
+                setStatus(newStatus as any);
+            }
+        };
+
+        const handleSynced = ({ state }: { state: boolean }) => setIsSynced(state);
+        const handleUnsynced = ({ number }: { number: number }) => setUnsyncedChanges(number);
+
+        provider.on('status', handleStatus);
+        provider.on('synced', handleSynced);
+        provider.on('unsyncedChanges', handleUnsynced);
+
+        // Sync initial values
+        const currentStatus = (provider as any).status || (provider.configuration.websocketProvider as any).status;
+        if (currentStatus) setStatus(currentStatus);
+        setIsSynced(provider.synced);
+
+        return () => {
+            provider.off('status', handleStatus);
+            provider.off('synced', handleSynced);
+            provider.off('unsyncedChanges', handleUnsynced);
+        };
     }, [provider]);
 
     // Debounced title update
@@ -34,11 +62,18 @@ export function Editor({ noteId, initialTitle, userName, provider, ydoc }: Edito
         if (title === initialTitle) return;
 
         const timeout = setTimeout(() => {
-            updateNote.mutate({ id: noteId, title });
+            updateNote.mutate({ id: noteId, title }, {
+                onSuccess: () => {
+                    setShowSaved(true);
+                    setTimeout(() => setShowSaved(false), 2000);
+                }
+            });
         }, 1000);
 
         return () => clearTimeout(timeout);
     }, [title, noteId, initialTitle, updateNote]);
+
+    const isActuallySaving = updateNote.isPending || unsyncedChanges > 0 || !isSynced;
 
     const extensions = useMemo(() => [
         StarterKit.configure({
@@ -74,23 +109,41 @@ export function Editor({ noteId, initialTitle, userName, provider, ydoc }: Edito
             </div>
         );
     }
-
     return (
         <div className="flex flex-col h-full bg-white">
             {/* Header / Meta */}
             <div className="px-8 pt-12 pb-4 max-w-3xl mx-auto w-full">
                 <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        {status === 'connected' ? (
-                            <>
-                                <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                                <span className="text-emerald-600">Synced to Brain</span>
-                            </>
-                        ) : (
-                            <>
-                                <CloudOff className="size-3 text-slate-300" />
-                                <span>Syncing...</span>
-                            </>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                            {status === 'connected' ? (
+                                <>
+                                    <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                    <span className="text-emerald-600">Synced to Brain</span>
+                                </>
+                            ) : (
+                                <>
+                                    <CloudOff className="size-3 text-slate-300" />
+                                    <span>Syncing...</span>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Persistence Status */}
+                        {(isActuallySaving || showSaved) && (
+                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
+                                {isActuallySaving ? (
+                                    <>
+                                        <div className="size-1 border-b-[1.5px] border-l-[1.5px] border-amber-500 rounded-full animate-spin" />
+                                        <span className="text-amber-600">Saving...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="size-1 rounded-full bg-slate-300" />
+                                        <span className="text-slate-400">Saved</span>
+                                    </>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>
