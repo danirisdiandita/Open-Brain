@@ -8,7 +8,11 @@ import * as Y from "yjs";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Bold, Italic, List, ListOrdered, Quote, Code, Heading1, Heading2, Cloud, CloudOff, Info } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Quote, Code, Heading1, Heading2, Cloud, CloudOff, Info, Table as TableIcon } from "lucide-react";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableHeader } from "@tiptap/extension-table-header";
+import { TableCell } from "@tiptap/extension-table-cell";
 import { Spinner } from "@/components/spinner";
 import { useUpdateNote } from "@/hooks/use-notes";
 
@@ -79,6 +83,12 @@ export function Editor({ noteId, initialTitle, userName, provider, ydoc }: Edito
         StarterKit.configure({
             history: false as any,
         }),
+        Table.configure({
+            resizable: true,
+        }),
+        TableRow,
+        TableHeader,
+        TableCell,
         Collaboration.configure({
             document: ydoc,
         }),
@@ -208,6 +218,44 @@ export function Editor({ noteId, initialTitle, userName, provider, ydoc }: Edito
                 >
                     <ListOrdered size={16} />
                 </Button>
+                <div className="w-[1px] h-4 bg-slate-200 mx-1" />
+                <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+                    className="text-slate-500 hover:text-primary transition-colors"
+                    title="Insert Table"
+                >
+                    <TableIcon size={16} />
+                </Button>
+                {editor.isActive("table") && (
+                    <>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => editor.chain().focus().addColumnAfter().run()}
+                            className="text-[10px] px-2 h-7 font-bold uppercase tracking-tight text-slate-500 hover:text-primary"
+                        >
+                            +Col
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => editor.chain().focus().addRowAfter().run()}
+                            className="text-[10px] px-2 h-7 font-bold uppercase tracking-tight text-slate-500 hover:text-primary"
+                        >
+                            +Row
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => editor.chain().focus().deleteTable().run()}
+                            className="text-[10px] px-2 h-7 font-bold uppercase tracking-tight text-red-400 hover:text-red-600"
+                        >
+                            Del
+                        </Button>
+                    </>
+                )}
             </div>
 
             {/* Content Area */}
