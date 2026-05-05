@@ -8,6 +8,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",
     )
 
     # Application
@@ -41,17 +42,14 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
 
-    # Email
-    smtp_host: str = "smtp.example.com"
-    smtp_port: int = 587
-    smtp_user: str = "noreply@example.com"
-    smtp_password: str = "change-me"
-    smtp_from: str = "noreply@example.com"
+    # Email (Resend)
+    resend_api_key: str = "re_123456789"
+    resend_from: str = "Open Brain <onboarding@resend.dev>"
 
     # Frontend
-    frontend_url: str = "http://localhost:3000"
-    verify_email_redirect: str = "http://localhost:3000/auth/verify"
-    reset_password_redirect: str = "http://localhost:3000/auth/reset-password"
+    frontend_url: str = "http://localhost:5173"
+    verify_email_redirect: str = "http://localhost:5173/verify-email"
+    reset_password_redirect: str = "http://localhost:5173/reset-password"
 
 
 @lru_cache

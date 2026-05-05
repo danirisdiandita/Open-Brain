@@ -1,29 +1,25 @@
+import asyncio
 import logging
-from email.mime.text import MIMEText
 
-import aiosmtplib
+import resend
 
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
+resend.api_key = settings.resend_api_key
+
 
 async def send_email(to: str, subject: str, body: str) -> None:
-    message = MIMEText(body, "html")
-    message["From"] = settings.smtp_from
-    message["To"] = to
-    message["Subject"] = subject
-
     try:
-        await aiosmtplib.send(
-            message,
-            hostname=settings.smtp_host,
-            port=settings.smtp_port,
-            username=settings.smtp_user,
-            password=settings.smtp_password,
-            start_tls=True,
-        )
+        params: resend.Emails.SendParams = {
+            "from": settings.resend_from,
+            "to": [to],
+            "subject": subject,
+            "html": body,
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
     except Exception as exc:
         logger.warning("Failed to send email to %s: %s", to, exc)
         if settings.debug:

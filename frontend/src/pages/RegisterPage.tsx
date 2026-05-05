@@ -1,13 +1,13 @@
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { z } from "zod"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { useRegister } from "@/hooks"
+import { useRegister, useResendVerification } from "@/hooks"
 
 const schema = z.object({
   fullName: z.string().min(1, "Name is required").max(128),
@@ -19,7 +19,7 @@ type FormData = z.infer<typeof schema>
 
 export default function RegisterPage() {
   const register = useRegister()
-  const navigate = useNavigate()
+  const resend = useResendVerification()
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -27,30 +27,44 @@ export default function RegisterPage() {
   })
 
   const onSubmit = (data: FormData) => {
-    register.mutate(
-      { email: data.email, password: data.password, full_name: data.fullName },
-      {
-        onSuccess: () => {
-          navigate("/login?registered=true")
-        },
-      },
-    )
+    register.mutate({
+      email: data.email,
+      password: data.password,
+      full_name: data.fullName,
+    })
   }
 
   if (register.isSuccess) {
+    const email = register.variables.email
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Check Your Email</CardTitle>
             <CardDescription>
-              We sent a verification link to your email. Please verify before signing in.
+              We sent a verification link to <strong>{email}</strong>. Please verify before signing in.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center">
-            <Button variant="link" asChild>
-              <Link to="/login">Go to Sign In</Link>
-            </Button>
+          <CardContent className="space-y-4 text-center">
+            <div>
+              <Button variant="link" asChild>
+                <Link to="/login">Go to Sign In</Link>
+              </Button>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Didn't get the email?{" "}
+              <button
+                type="button"
+                className="text-primary underline"
+                disabled={resend.isPending}
+                onClick={() => resend.mutate(email)}
+              >
+                {resend.isPending ? "Sending..." : "Resend verification email"}
+              </button>
+              {resend.isSuccess && (
+                <p className="text-green-600 mt-1">Verification email resent!</p>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>

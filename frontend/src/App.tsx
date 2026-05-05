@@ -5,6 +5,7 @@ import RegisterPage from "@/pages/RegisterPage"
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage"
 import ResetPasswordPage from "@/pages/ResetPasswordPage"
 import VerifyEmailPage from "@/pages/VerifyEmailPage"
+import LandingPage from "@/pages/LandingPage"
 import DashboardLayout from "@/pages/DashboardLayout"
 import DashboardPage from "@/pages/DashboardPage"
 import NotFoundPage from "@/pages/NotFoundPage"
@@ -55,7 +56,7 @@ export default function App() {
           >
             <Route index element={<DashboardPage />} />
           </Route>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
