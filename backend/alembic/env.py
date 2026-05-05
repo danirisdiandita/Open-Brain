@@ -12,6 +12,8 @@ from sqlalchemy import engine_from_config, pool
 from app.config import get_settings
 from app.models.base import Base
 from app.models.user import User  # noqa: F401 — ensure models are imported
+from app.models.organization import Organization  # noqa: F401
+from app.models.user_organization import UserOrganization  # noqa: F401
 
 settings = get_settings()
 config = context.config
