@@ -54,10 +54,10 @@ export default function LandingPage() {
       <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
         <div className="max-w-3xl space-y-6">
           <div className="space-y-3">
-            <h1 className="text-5xl font-bold tracking-tight sm:text-6xl">
+            <h1 className="text-5xl font-bold tracking-tight text-primary sm:text-6xl">
               OpenBrain
             </h1>
-            <p className="text-xl text-muted-foreground sm:text-2xl">
+            <p className="text-xl text-muted-foreground sm:text-2xl font-medium">
               Open Source RAG-Powered Wiki
             </p>
             <p className="text-muted-foreground max-w-xl mx-auto">

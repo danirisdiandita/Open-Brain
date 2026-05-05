@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Link } from "react-router-dom"
 import { z } from "zod"
+import { Brain } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -37,10 +38,13 @@ export default function RegisterPage() {
   if (register.isSuccess) {
     const email = register.variables.email
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Check Your Email</CardTitle>
+      <div className="flex min-h-screen items-center justify-center p-4 bg-background">
+        <Card className="w-full max-w-md shadow-lg border-border/50">
+          <CardHeader className="text-center space-y-2">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
+              <Brain className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <CardTitle className="text-2xl">Check Your Email</CardTitle>
             <CardDescription>
               We sent a verification link to <strong>{email}</strong>. Please verify before signing in.
             </CardDescription>
@@ -55,7 +59,7 @@ export default function RegisterPage() {
               Didn't get the email?{" "}
               <button
                 type="button"
-                className="text-primary underline"
+                className="text-primary underline underline-offset-4 hover:text-primary/80 font-medium"
                 disabled={resend.isPending}
                 onClick={() => resend.mutate(email)}
               >
@@ -72,11 +76,14 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Create Account</CardTitle>
-          <CardDescription>Sign up for a new account</CardDescription>
+    <div className="flex min-h-screen items-center justify-center p-4 bg-background">
+      <Card className="w-full max-w-md shadow-lg border-border/50">
+        <CardHeader className="text-center space-y-2">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
+            <Brain className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <CardTitle className="text-2xl">Create Account</CardTitle>
+          <CardDescription>Get started with OpenBrain</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -130,9 +137,9 @@ export default function RegisterPage() {
               </Button>
             </form>
           </Form>
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-4 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/login" className="text-primary underline">
+            <Link to="/login" className="text-primary underline underline-offset-4 hover:text-primary/80 font-medium">
               Sign in
             </Link>
           </div>
