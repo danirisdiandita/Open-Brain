@@ -1,5 +1,9 @@
 # Open Brain
 
+<p align="center">
+  <img src="./logo.png" alt="OpenBrain logo" width="200">
+</p>
+
 Open Source Second Brain Dashboard based on RAG
 
 ## Prerequisites
