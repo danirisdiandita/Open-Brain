@@ -14,6 +14,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar"
 
 const items = [
@@ -25,6 +26,11 @@ const items = [
 export function AppSidebar() {
   const location = useLocation()
   const logout = useLogout()
+  const { isMobile, setOpenMobile } = useSidebar()
+
+  const handleNav = () => {
+    if (isMobile) setOpenMobile(false)
+  }
 
   return (
     <Sidebar>
@@ -32,7 +38,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link to="/dashboard">
+              <Link to="/dashboard" onClick={handleNav}>
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground">
                   <Brain className="size-4" />
                 </div>
@@ -57,7 +63,7 @@ export function AppSidebar() {
                     isActive={location.pathname === item.url}
                     tooltip={item.title}
                   >
-                    <Link to={item.url}>
+                    <Link to={item.url} onClick={handleNav}>
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>
