@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { Brain, Home, Search, Settings, LogOut, Building2, ChevronsUpDown } from "lucide-react"
 
@@ -20,18 +20,20 @@ import {
 } from "@/components/ui/sidebar"
 import { OrganizationModal } from "@/components/OrganizationModal"
 
-const items = [
-  { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Search", url: "/dashboard/search", icon: Search },
-  { title: "Settings", url: "/dashboard/settings", icon: Settings },
-]
-
 export function AppSidebar() {
   const location = useLocation()
   const logout = useLogout()
   const { isMobile, setOpenMobile } = useSidebar()
   const { selectedOrg } = useOrganization()
   const [orgModalOpen, setOrgModalOpen] = useState(false)
+
+  const orgPrefix = selectedOrg ? `/dashboard/${selectedOrg.slug}` : "/dashboard"
+
+  const items = useMemo(() => [
+    { title: "Dashboard", url: orgPrefix, icon: Home },
+    { title: "Search", url: `${orgPrefix}/search`, icon: Search },
+    { title: "Settings", url: `${orgPrefix}/settings`, icon: Settings },
+  ], [orgPrefix])
 
   const handleNav = () => {
     if (isMobile) setOpenMobile(false)

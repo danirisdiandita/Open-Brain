@@ -9,6 +9,7 @@ import {
   VerifyEmailPage,
 } from "@/pages/auth"
 import { DashboardLayout, DashboardPage } from "@/pages/dashboard"
+import { OnboardingGuard } from "@/components/OnboardingGuard"
 import LandingPage from "@/pages/LandingPage"
 import NotFoundPage from "@/pages/NotFoundPage"
 
@@ -51,6 +52,14 @@ export default function App() {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route
             path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <OnboardingGuard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/:orgSlug"
             element={
               <ProtectedRoute>
                 <DashboardLayout />

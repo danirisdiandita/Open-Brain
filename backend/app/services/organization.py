@@ -1,4 +1,5 @@
 import uuid
+import secrets
 
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,10 +7,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.organization import Organization
 from app.models.user import User
 from app.models.user_organization import UserOrganization
+from app.models.folder import Folder
 
 
 class OrganizationError(Exception):
     pass
+
+
+async def _ensure_unique_slug(db: AsyncSession, base_slug: str) -> str:
+    slug = base_slug
+    result = await db.execute(select(Organization).where(Organization.slug == slug))
+    if result.scalar_one_or_none() is None:
+        return slug
+    suffix = secrets.token_hex(2)
+    return f"{base_slug}_{suffix}"
 
 
 async def list_organizations(db: AsyncSession, user: User) -> list[dict]:
@@ -70,11 +81,7 @@ async def create_organization(
     logo_url: str | None = None,
     is_public: bool = False,
 ) -> dict:
-    existing = await db.execute(
-        select(Organization).where(Organization.slug == slug)
-    )
-    if existing.scalar_one_or_none() is not None:
-        raise OrganizationError("An organization with this slug already exists")
+    slug = await _ensure_unique_slug(db, slug)
 
     org = Organization(
         name=name,
@@ -162,6 +169,12 @@ async def delete_organization(db: AsyncSession, org_id: uuid.UUID, user: User) -
     if org is None:
         raise OrganizationError("Organization not found")
 
+    await db.execute(
+        delete(UserOrganization).where(UserOrganization.organization_id == org_id)
+    )
+    await db.execute(
+        delete(Folder).where(Folder.organization_id == org_id)
+    )
     await db.delete(org)
     await db.flush()
 

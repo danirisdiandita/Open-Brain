@@ -8,8 +8,11 @@ import {
 } from "@/components/ui/breadcrumb"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/AppSidebar"
+import { useSyncOrgFromSlug } from "@/hooks/useSyncOrgFromSlug"
 
 export default function DashboardLayout() {
+  useSyncOrgFromSlug()
+
   return (
     <SidebarProvider>
       <AppSidebar />

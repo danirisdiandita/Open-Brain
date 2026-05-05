@@ -30,4 +30,9 @@ class Organization(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    users: Mapped[list["UserOrganization"]] = relationship(back_populates="organization")
+    users: Mapped[list["UserOrganization"]] = relationship(
+        back_populates="organization", cascade="all, delete-orphan"
+    )
+    folders: Mapped[list["Folder"]] = relationship(
+        back_populates="organization", cascade="all, delete-orphan"
+    )

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Building2, Plus, Pencil, Trash2, Check, AlertTriangle, Loader2 } from "lucide-react"
 
 import {
@@ -33,7 +34,7 @@ interface FormFields {
 const emptyForm: FormFields = { name: "", slug: "", description: "", is_public: false }
 
 function slugFromName(name: string) {
-  return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
+  return name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "")
 }
 
 interface Props {
@@ -44,6 +45,7 @@ interface Props {
 export function OrganizationModal({ open, onOpenChange }: Props) {
   const { data: orgs, isLoading } = useOrganizations()
   const { selectedOrg, selectOrg } = useOrganization()
+  const navigate = useNavigate()
   const createOrg = useCreateOrganization()
   const updateOrg = useUpdateOrganization()
   const deleteOrg = useDeleteOrganization()
@@ -67,6 +69,7 @@ export function OrganizationModal({ open, onOpenChange }: Props) {
 
   const handleSelect = (org: OrgResponse) => {
     selectOrg(org)
+    navigate(`/dashboard/${org.slug}`, { replace: true })
     handleClose()
   }
 
@@ -77,6 +80,7 @@ export function OrganizationModal({ open, onOpenChange }: Props) {
         onSuccess: (org) => {
           selectOrg(org)
           handleClose()
+          navigate(`/dashboard/${org.slug}`, { replace: true })
         },
       },
     )
@@ -104,8 +108,7 @@ export function OrganizationModal({ open, onOpenChange }: Props) {
     if (!editId) return
     deleteOrg.mutate(editId, {
       onSuccess: () => {
-        if (selectedOrg?.id === editId) selectOrg(orgs?.[0] ?? null as unknown as OrgResponse)
-        reset()
+        navigate("/dashboard", { replace: true })
       },
     })
   }
@@ -254,7 +257,7 @@ export function OrganizationModal({ open, onOpenChange }: Props) {
                 id="slug"
                 value={form.slug}
                 onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
-                placeholder="my-organization"
+                placeholder="my_organization"
                 required
               />
             </div>
