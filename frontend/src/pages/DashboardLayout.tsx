@@ -1,42 +1,34 @@
-import { Link, Outlet, useLocation } from "react-router-dom"
-import { useLogout } from "@/hooks"
-import { Button } from "@/components/ui/button"
+import { Outlet } from "react-router-dom"
+import { Separator } from "@/components/ui/separator"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+} from "@/components/ui/breadcrumb"
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/AppSidebar"
 
 export default function DashboardLayout() {
-  const logout = useLogout()
-  const location = useLocation()
-
-  const navLinks = [
-    { to: "/dashboard", label: "Home" },
-  ]
-
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="flex h-14 items-center justify-between px-4 max-w-6xl mx-auto">
-          <nav className="flex gap-4">
-            {navLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={`text-sm font-medium ${
-                  location.pathname === link.to
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-          <Button variant="outline" size="sm" onClick={logout}>
-            Sign Out
-          </Button>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbPage>Dashboard</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-4">
+          <Outlet />
         </div>
-      </header>
-      <main className="max-w-6xl mx-auto p-4">
-        <Outlet />
-      </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
