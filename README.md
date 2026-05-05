@@ -55,6 +55,54 @@ npm run dev
 
 Frontend runs at **http://localhost:5173** — proxies `/api` to the backend at `:8000`
 
+## Project Structure
+
+```
+Open-Brain/
+├── backend/                     # FastAPI backend
+│   ├── app/
+│   │   ├── main.py              # App entry point, CORS, router mounts
+│   │   ├── config.py            # Pydantic settings (.env)
+│   │   ├── database.py          # Async SQLAlchemy engine
+│   │   ├── api/                 # Route handlers
+│   │   │   ├── deps.py          # Dependencies (get_db, get_current_user)
+│   │   │   └── v1/              # API v1 routes
+│   │   ├── models/              # SQLAlchemy ORM models
+│   │   ├── schemas/             # Pydantic request/response models
+│   │   ├── services/            # Business logic layer
+│   │   └── utils/               # Security, email utilities
+│   ├── alembic/                 # Database migrations
+│   ├── .env.example             # Environment template
+│   └── requirements.txt
+├── frontend/                    # Vite + React + TypeScript frontend
+│   ├── src/
+│   │   ├── api/                 # API client + auth functions
+│   │   ├── components/          # shadcn/ui primitives + AppSidebar
+│   │   ├── contexts/            # Auth state provider
+│   │   ├── hooks/               # TanStack Query mutations
+│   │   ├── lib/                 # Utilities (cn)
+│   │   ├── pages/
+│   │   │   ├── auth/            # Login, Register, Forgot/Reset Password, Verify Email
+│   │   │   ├── dashboard/       # Dashboard layout + page
+│   │   │   ├── LandingPage.tsx  # Public landing page
+│   │   │   └── NotFoundPage.tsx # 404
+│   │   ├── App.tsx              # Router + route guards
+│   │   └── main.tsx             # Entry point
+│   ├── vite.config.ts           # Vite config (proxy /api → :8000)
+│   └── package.json
+└── README.md
+```
+
+## Code Conventions
+
+- **Separation of concerns** — pages grouped by domain (`auth/`, `dashboard/`)
+- **Barrel exports** — each page group has an `index.ts` exporting named defaults
+- **Custom hooks** — all API calls go through TanStack Query hooks; never call `axios` directly
+- **Path aliases** — use `@/` prefix (`@/components`, `@/hooks`, `@/contexts`, etc.)
+- **Component naming** — PascalCase with suffix (`LoginPage`, `DashboardLayout`)
+- **Styling** — Tailwind CSS + shadcn CSS variables (navy primary, indigo accent, white background)
+- **Auth** — `AuthContext` manages tokens via `localStorage`; route guards wrap pages
+
 ## Environment Variables
 
 See `backend/.env.example` for the full list. Key ones:

@@ -11,11 +11,13 @@ frontend/
 │   │   ├── client.ts            # Axios instance with auth interceptors + token refresh
 │   │   └── auth.ts              # Auth API functions (register, login, refresh, verify, reset, etc.)
 │   ├── components/
-│   │   └── ui/                  # shadcn/ui primitives (Button, Input, Card, Form, Label, etc.)
+│   │   ├── ui/                  # shadcn/ui primitives (Button, Input, Card, Form, Label, Sidebar, etc.)
+│   │   └── AppSidebar.tsx       # Main sidebar navigation component
 │   ├── contexts/
 │   │   └── AuthContext.tsx      # Auth state provider (tokens, setTokens, logout, isAuthenticated)
 │   ├── hooks/
 │   │   ├── index.ts             # Barrel export for all hooks
+│   │   ├── use-mobile.tsx       # Mobile breakpoint detection
 │   │   ├── useLogin.ts          # POST /auth/login mutation
 │   │   ├── useRegister.ts       # POST /auth/register mutation
 │   │   ├── useLogout.ts         # Clear tokens + navigate to /login
@@ -26,14 +28,19 @@ frontend/
 │   ├── lib/
 │   │   └── utils.ts             # cn() utility (clsx + tailwind-merge)
 │   ├── pages/
-│   │   ├── LoginPage.tsx        # Sign-in form
-│   │   ├── RegisterPage.tsx     # Sign-up form
-│   │   ├── ForgotPasswordPage.tsx   # Request password reset
-│   │   ├── ResetPasswordPage.tsx    # Set new password
-│   │   ├── VerifyEmailPage.tsx      # Email verification landing
-│   │   ├── DashboardLayout.tsx      # Authenticated layout (sidebar/header + Outlet)
-│   │   ├── DashboardPage.tsx        # Main dashboard (protected)
-│   │   └── NotFoundPage.tsx         # 404 fallback
+│   │   ├── auth/
+│   │   │   ├── index.ts             # Barrel export for auth pages
+│   │   │   ├── LoginPage.tsx        # Sign-in form
+│   │   │   ├── RegisterPage.tsx     # Sign-up form
+│   │   │   ├── ForgotPasswordPage.tsx   # Request password reset
+│   │   │   ├── ResetPasswordPage.tsx    # Set new password
+│   │   │   └── VerifyEmailPage.tsx      # Email verification landing
+│   │   ├── dashboard/
+│   │   │   ├── index.ts             # Barrel export for dashboard pages
+│   │   │   ├── DashboardLayout.tsx  # Authenticated layout (sidebar/header + Outlet)
+│   │   │   └── DashboardPage.tsx    # Main dashboard (protected)
+│   │   ├── LandingPage.tsx      # Public landing page
+│   │   └── NotFoundPage.tsx     # 404 fallback
 │   ├── App.tsx                  # Routes + GuestRoute/ProtectedRoute wrappers
 │   ├── main.tsx                 # Entry: QueryClientProvider + App
 │   └── index.css                # Tailwind directives + shadcn CSS variables
@@ -44,6 +51,35 @@ frontend/
 ├── tsconfig.app.json            # TypeScript config with @/* path alias
 └── package.json
 ```
+
+## Code Conventions
+
+### File Organization
+
+- **`src/pages/auth/`** — authentication pages (login, register, password reset, email verify)
+- **`src/pages/dashboard/`** — authenticated dashboard pages (layout, dashboard)
+- **`src/pages/` (root)** — top-level pages (landing, 404)
+- **`src/components/AppSidebar.tsx`** — sidebar navigation (reused in dashboard layout)
+- **`src/components/ui/`** — shadcn/ui primitives (auto-generated)
+
+### Naming
+
+- Page components use `PascalCase` with `Page` suffix (e.g. `LoginPage.tsx`)
+- Barrel exports in `index.ts` use named exports
+- Hooks use `use` prefix (e.g. `useLogin`)
+- API functions use noun + action naming
+
+### Imports
+
+- Use `@/` path alias (`@/components`, `@/hooks`, `@/lib`, `@/contexts`, `@/pages`, `@/api`)
+- Group imports: React/routing → UI components → hooks/context → lib
+- Always import from barrel exports when available
+
+### Styling
+
+- Tailwind CSS utility classes with shadcn CSS variables
+- Colors: Navy (`#021b33`) primary, Indigo (`#383782`) accent, white dominant background
+- shadcn components use default variants (modify via CSS vars, not overrides)
 
 ## Quick Start
 
@@ -67,7 +103,7 @@ npm run dev
 
 | Path | Auth | Page |
 |------|------|------|
-| `/` | Any | Redirects to `/dashboard` |
+| `/` | Any | LandingPage |
 | `/login` | Guest only | LoginPage |
 | `/register` | Guest only | RegisterPage |
 | `/forgot-password` | Any | ForgotPasswordPage |
@@ -119,7 +155,7 @@ This keeps API logic centralized:
 1. Add the API function in `src/api/<module>.ts`
 2. Create a custom hook `src/hooks/use<Action>.ts` wrapping it with `useMutation`
 3. Export from `src/hooks/index.ts`
-4. Build the page/component in `src/pages/`
+4. Build the page/component in the appropriate `src/pages/` subdirectory (`auth/`, `dashboard/`, or root)
 5. Add route in `src/App.tsx`
 
 ## shadcn/ui

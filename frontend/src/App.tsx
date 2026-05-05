@@ -1,13 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider, useAuth } from "@/contexts/AuthContext"
-import LoginPage from "@/pages/LoginPage"
-import RegisterPage from "@/pages/RegisterPage"
-import ForgotPasswordPage from "@/pages/ForgotPasswordPage"
-import ResetPasswordPage from "@/pages/ResetPasswordPage"
-import VerifyEmailPage from "@/pages/VerifyEmailPage"
+import {
+  LoginPage,
+  RegisterPage,
+  ForgotPasswordPage,
+  ResetPasswordPage,
+  VerifyEmailPage,
+} from "@/pages/auth"
+import { DashboardLayout, DashboardPage } from "@/pages/dashboard"
 import LandingPage from "@/pages/LandingPage"
-import DashboardLayout from "@/pages/DashboardLayout"
-import DashboardPage from "@/pages/DashboardPage"
 import NotFoundPage from "@/pages/NotFoundPage"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
