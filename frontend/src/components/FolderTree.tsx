@@ -186,7 +186,7 @@ export function FolderTree() {
             <Input
               autoFocus
               defaultValue={data.name}
-              className="h-6 py-0 px-1 text-xs"
+              className="h-6 py-0 px-1 text-xs !bg-white !text-black"
               onBlur={() => node.reset()}
               onKeyDown={(e) => {
                 if (e.key === "Escape") node.reset()
