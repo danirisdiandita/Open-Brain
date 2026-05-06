@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { Tree, type NodeRendererProps } from "react-arborist"
 import { Folder, FolderOpen, Plus, Pencil, Trash2, GripVertical, ChevronRight, Loader2 } from "lucide-react"
 
@@ -19,6 +20,7 @@ import {
   useUpdateFolder,
   useDeleteFolder,
 } from "@/hooks/useFolders"
+import { useCurrentFolderPath } from "@/hooks/useSyncOrgFromSlug"
 import type { FolderResponse } from "@/api/folder"
 
 interface TreeNode {
@@ -61,9 +63,23 @@ function buildTree(flat: FolderResponse[]): TreeNode[] {
   return roots
 }
 
+function findNodeBySlugPath(tree: TreeNode[] | undefined, slugs: string[]): TreeNode | null {
+  if (!tree || slugs.length === 0) return null
+  const slug = slugs[0]
+  for (const node of tree) {
+    if (node.slug === slug) {
+      if (slugs.length === 1) return node
+      return findNodeBySlugPath(node.children, slugs.slice(1))
+    }
+  }
+  return null
+}
+
 export function FolderTree() {
   const { selectedOrg } = useOrganization()
   const orgId = selectedOrg?.id
+  const navigate = useNavigate()
+  const currentPath = useCurrentFolderPath()
 
   const { data: flatFolders, isLoading } = useFolders(orgId)
   const createFolder = useCreateFolder()
@@ -86,13 +102,33 @@ export function FolderTree() {
     return () => obs.disconnect()
   }, [])
 
+  const treeData: TreeNode[] = flatFolders ? buildTree(flatFolders) : []
+  const currentFolder = findNodeBySlugPath(treeData, currentPath)
+
+  useEffect(() => {
+    const tree = treeRef.current
+    if (!tree || !currentPath.length) {
+      tree?.closeAll()
+      return
+    }
+
+    let lastId: string | null = null
+    let currentTree = treeData
+    for (const slug of currentPath) {
+      const node = currentTree.find((n: TreeNode) => n.slug === slug)
+      if (!node) break
+      lastId = node.id
+      tree.open(node.id)
+      currentTree = node.children ?? []
+    }
+    if (lastId) tree.scrollTo(lastId)
+  }, [currentPath, treeData])
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [createParentId, setCreateParentId] = useState<string | null>(null)
   const [createName, setCreateName] = useState("")
   const [createSlug, setCreateSlug] = useState("")
   const [createDesc, setCreateDesc] = useState("")
-
-  const treeData: TreeNode[] = flatFolders ? buildTree(flatFolders) : []
 
   const handleCreate = useCallback(
     ({ parentId }: { parentId: string | null; type?: string }) => {
@@ -102,7 +138,6 @@ export function FolderTree() {
       setCreateSlug("")
       setCreateDesc("")
       setCreateDialogOpen(true)
-
       return { cancelled: true } as any
     },
     [orgId],
@@ -111,36 +146,31 @@ export function FolderTree() {
   const handleRename = useCallback(
     ({ id, name }: { id: string; name: string }) => {
       if (!orgId) return
-      const match = flatFolders?.find((f) => f.id === id)
-      if (!match) return
-      updateFolder.mutate({
-        orgId,
-        id,
-        body: { name },
-      })
+      updateFolder.mutate({ orgId, id, body: { name } })
     },
-    [orgId, flatFolders, updateFolder],
+    [orgId, updateFolder],
   )
 
   const handleDelete = useCallback(
     ({ ids }: { ids: string[] }) => {
       if (!orgId) return
       for (const id of ids) {
+        const flat = flatFolders?.find((f) => f.id === id)
+        if (flat && currentFolder?.id === id) {
+          const parentSlugs = currentPath.slice(0, -1)
+          navigate(`/dashboard/${selectedOrg?.slug}/${parentSlugs.join("/")}`.replace(/\/$/, ""), { replace: true })
+        }
         deleteFolder.mutate({ orgId, id })
       }
     },
-    [orgId, deleteFolder],
+    [orgId, deleteFolder, flatFolders, currentFolder, currentPath, selectedOrg, navigate],
   )
 
   const handleMove = useCallback(
     ({ dragIds, parentId, index }: { dragIds: string[]; parentId: string | null; index: number }) => {
       if (!orgId || dragIds.length === 0) return
       for (const id of dragIds) {
-        updateFolder.mutate({
-          orgId,
-          id,
-          body: { parent_id: parentId ?? undefined, order_index: index },
-        })
+        updateFolder.mutate({ orgId, id, body: { parent_id: parentId ?? undefined, order_index: index } })
       }
     },
     [orgId, updateFolder],
@@ -160,56 +190,72 @@ export function FolderTree() {
     setCreateDialogOpen(false)
   }
 
+  const handleNavigateToFolder = (node: TreeNode, pathToHere: string[]) => {
+    const slugs = [...pathToHere, node.slug]
+    navigate(`/dashboard/${selectedOrg?.slug}/${slugs.join("/")}`)
+  }
+
   const NodeRenderer = ({ node, style, dragHandle }: NodeRendererProps<TreeNode>) => {
     const data = node.data
     const editing = node.isEditing
 
+    const nodePath = getNodePath(node)
+    const isCurrent = currentFolder?.id === data.id
+
     return (
       <div
         style={style}
-        className="flex items-center gap-1 pr-2 group"
-        onClick={() => node.isInternal && node.toggle()}
+        className={`flex items-center gap-1 pr-2 group rounded-sm ${isCurrent ? "bg-sidebar-accent text-sidebar-accent-foreground" : ""}`}
       >
         <span className="flex items-center shrink-0 w-5">
           {node.isInternal ? (
             <ChevronRight
-              className={`h-4 w-4 text-muted-foreground transition-transform ${node.isOpen ? "rotate-90" : ""}`}
+              className={`h-4 w-4 text-muted-foreground transition-transform cursor-pointer ${node.isOpen ? "rotate-90" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                node.toggle()
+              }}
             />
           ) : (
             <span className="w-4" />
           )}
         </span>
 
-        <span className="shrink-0">
-          {node.isOpen ? (
-            <FolderOpen className="h-4 w-4 text-sidebar-foreground/70" />
-          ) : (
-            <Folder className="h-4 w-4 text-sidebar-foreground/70" />
-          )}
-        </span>
+        <button
+          className="flex items-center gap-1 flex-1 min-w-0 text-left"
+          onClick={() => handleNavigateToFolder(data, nodePath)}
+        >
+          <span className="shrink-0">
+            {currentFolder?.id === data.id ? (
+              <FolderOpen className="h-4 w-4 text-sidebar-accent-foreground" />
+            ) : (
+              <Folder className="h-4 w-4 text-sidebar-foreground/70" />
+            )}
+          </span>
 
-        {editing ? (
-          <form
-            className="flex-1 min-w-0"
-            onSubmit={(e) => {
-              e.preventDefault()
-              const input = (e.target as HTMLFormElement).querySelector("input")
-              if (input) node.submit(input.value)
-            }}
-          >
-            <Input
-              autoFocus
-              defaultValue={data.name}
-              className="h-6 py-0 px-1 text-xs !bg-white !text-black"
-              onBlur={() => node.reset()}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") node.reset()
+          {editing ? (
+            <form
+              className="flex-1 min-w-0"
+              onSubmit={(e) => {
+                e.preventDefault()
+                const input = (e.target as HTMLFormElement).querySelector("input")
+                if (input) node.submit(input.value)
               }}
-            />
-          </form>
-        ) : (
-          <span className="flex-1 truncate text-sm">{data.name}</span>
-        )}
+            >
+              <Input
+                autoFocus
+                defaultValue={data.name}
+                className="h-6 py-0 px-1 text-xs !bg-white !text-black"
+                onBlur={() => node.reset()}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") node.reset()
+                }}
+              />
+            </form>
+          ) : (
+            <span className="flex-1 truncate text-sm">{data.name}</span>
+          )}
+        </button>
 
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
           <Button
@@ -255,6 +301,16 @@ export function FolderTree() {
         </div>
       </div>
     )
+  }
+
+  function getNodePath(node: any): string[] {
+    const slugs: string[] = []
+    let current = node
+    while (current?.parent?.data) {
+      slugs.unshift(current.parent.data.slug)
+      current = current.parent
+    }
+    return slugs
   }
 
   if (isLoading) {

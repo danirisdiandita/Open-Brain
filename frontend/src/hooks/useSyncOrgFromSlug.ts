@@ -4,7 +4,7 @@ import { useOrganizations } from "@/hooks/useOrganizations"
 import { useOrganization } from "@/contexts/OrganizationContext"
 
 export function useSyncOrgFromSlug() {
-  const { orgSlug } = useParams<{ orgSlug: string }>()
+  const { orgSlug } = useParams<{ orgSlug: string; "*"?: string }>()
   const { data: orgs, isLoading } = useOrganizations()
   const { selectedOrg, selectOrg } = useOrganization()
   const navigate = useNavigate()
@@ -23,4 +23,10 @@ export function useSyncOrgFromSlug() {
       selectOrg(match)
     }
   }, [orgSlug, orgs, isLoading, selectedOrg, selectOrg, navigate])
+}
+
+export function useCurrentFolderPath(): string[] {
+  const { "*": splat } = useParams<{ "*"?: string }>()
+  if (!splat || splat === "/") return []
+  return splat.replace(/^\//, "").replace(/\/$/, "").split("/").filter(Boolean)
 }

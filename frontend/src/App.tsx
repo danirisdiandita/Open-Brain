@@ -59,7 +59,7 @@ export default function App() {
             }
           />
           <Route
-            path="/dashboard/:orgSlug"
+            path="/dashboard/:orgSlug/*"
             element={
               <ProtectedRoute>
                 <DashboardLayout />
