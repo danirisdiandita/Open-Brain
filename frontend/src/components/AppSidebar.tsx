@@ -107,9 +107,8 @@ export function AppSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+          <FolderTree />
         </SidebarContent>
-
-        <FolderTree />
 
         <SidebarFooter>
           <SidebarMenu>
