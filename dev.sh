@@ -14,7 +14,7 @@ trap cleanup SIGINT SIGTERM
 echo "Starting backend (uvicorn) and frontend (vite)..."
 
 cd "$(dirname "$0")/backend"
-uvicorn app.main:app --reload &
+python -m uvicorn app.main:app --reload &
 BACKEND_PID=$!
 
 cd "$(dirname "$0")/frontend"

@@ -4,7 +4,7 @@
   <img src="./logo.png" alt="OpenBrain logo" width="200">
 </p>
 
-Open Source Second Brain Dashboard based on RAG
+A self-organizing wiki powered by LLM and RAG. Great for people with ADHD — dump your thoughts, get instant answers, and let the AI keep everything organized.
 
 ## Prerequisites
 
