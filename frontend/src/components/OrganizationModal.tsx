@@ -34,7 +34,7 @@ interface FormFields {
 const emptyForm: FormFields = { name: "", slug: "", description: "", is_public: false }
 
 function slugFromName(name: string) {
-  return name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "")
+  return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
 }
 
 interface Props {
@@ -257,7 +257,7 @@ export function OrganizationModal({ open, onOpenChange }: Props) {
                 id="slug"
                 value={form.slug}
                 onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
-                placeholder="my_organization"
+                placeholder="my-organization"
                 required
               />
             </div>

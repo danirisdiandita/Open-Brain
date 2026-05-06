@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { useState } from "react"
 
 function slugFromName(name: string) {
-  return name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "")
+  return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
 }
 
 export function OnboardingGuard() {
@@ -82,7 +82,7 @@ export function OnboardingGuard() {
                 id="onboard-slug"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
-                placeholder="my_organization"
+                placeholder="my-organization"
                 required
               />
             </div>

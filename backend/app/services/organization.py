@@ -20,7 +20,7 @@ async def _ensure_unique_slug(db: AsyncSession, base_slug: str) -> str:
     if result.scalar_one_or_none() is None:
         return slug
     suffix = secrets.token_hex(2)
-    return f"{base_slug}_{suffix}"
+    return f"{base_slug}-{suffix}"
 
 
 async def list_organizations(db: AsyncSession, user: User) -> list[dict]:
