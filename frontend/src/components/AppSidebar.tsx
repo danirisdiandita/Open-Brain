@@ -85,8 +85,6 @@ export function AppSidebar() {
 
         <SidebarSeparator />
 
-        <FolderTree />
-
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel>Navigation</SidebarGroupLabel>
@@ -110,6 +108,8 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
+
+        <FolderTree />
 
         <SidebarFooter>
           <SidebarMenu>
