@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useRef, useState, useEffect } from "react"
 import { Tree, type NodeRendererProps } from "react-arborist"
 import { Folder, FolderOpen, Plus, Pencil, Trash2, GripVertical, ChevronRight, Loader2 } from "lucide-react"
 
@@ -71,6 +71,20 @@ export function FolderTree() {
   const deleteFolder = useDeleteFolder()
 
   const treeRef = useRef<any>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerHeight, setContainerHeight] = useState(200)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const update = () => {
+      if (el.clientHeight > 0) setContainerHeight(el.clientHeight)
+    }
+    update()
+    const obs = new ResizeObserver(update)
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [createParentId, setCreateParentId] = useState<string | null>(null)
@@ -253,7 +267,7 @@ export function FolderTree() {
 
   return (
     <>
-      <div className="space-y-2">
+      <div className="flex-1 min-h-0 flex flex-col space-y-2">
         <div className="flex items-center justify-between px-2">
           <span className="text-xs font-medium text-sidebar-foreground/70">Folders</span>
           <Button
@@ -266,7 +280,7 @@ export function FolderTree() {
           </Button>
         </div>
 
-        <div className="px-1">
+        <div className="flex-1 min-h-0" ref={containerRef}>
           {treeData.length > 0 ? (
             <Tree<TreeNode>
               ref={treeRef}
@@ -276,7 +290,7 @@ export function FolderTree() {
               onDelete={handleDelete}
               onMove={handleMove}
               width="100%"
-              height={Math.max(treeData.length * 32 + 8, 100)}
+              height={containerHeight}
               rowHeight={32}
               indent={16}
               disableDrag={false}
