@@ -9,6 +9,7 @@ from app.schemas.auth import (
     TokenPayload,
     VerifyEmailRequest,
 )
+from app.schemas.folder import FolderCreate, FolderResponse, FolderUpdate
 from app.schemas.user import UserResponse
 
 __all__ = [
@@ -22,4 +23,7 @@ __all__ = [
     "TokenPayload",
     "UserResponse",
     "VerifyEmailRequest",
+    "FolderCreate",
+    "FolderUpdate",
+    "FolderResponse",
 ]

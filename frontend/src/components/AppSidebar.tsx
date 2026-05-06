@@ -19,6 +19,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { OrganizationModal } from "@/components/OrganizationModal"
+import { FolderTree } from "@/components/FolderTree"
 
 export function AppSidebar() {
   const location = useLocation()
@@ -83,6 +84,8 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarSeparator />
+
+        <FolderTree />
 
         <SidebarContent>
           <SidebarGroup>
