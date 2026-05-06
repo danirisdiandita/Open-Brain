@@ -107,5 +107,17 @@ async def update_folder(
 
 async def delete_folder(db: AsyncSession, folder_id: uuid.UUID, org_id: uuid.UUID, user: User) -> None:
     folder = await get_folder(db, folder_id, org_id, user)
+
+    # Recursively delete all children first
+    async def _delete_children(parent_id: uuid.UUID) -> None:
+        result = await db.execute(
+            select(Folder).where(Folder.parent_id == parent_id)
+        )
+        children = result.scalars().all()
+        for child in children:
+            await _delete_children(child.id)
+            await db.delete(child)
+
+    await _delete_children(folder.id)
     await db.delete(folder)
     await db.flush()

@@ -34,4 +34,6 @@ class Folder(Base):
 
     organization: Mapped["Organization"] = relationship(back_populates="folders")
     parent: Mapped["Folder | None"] = relationship(back_populates="children", remote_side="[Folder.id]")
-    children: Mapped[list["Folder"]] = relationship(back_populates="parent")
+    children: Mapped[list["Folder"]] = relationship(
+        back_populates="parent", cascade="all, delete-orphan"
+    )

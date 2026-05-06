@@ -5,6 +5,7 @@ import { Folder, FolderOpen, Plus, Pencil, Trash2, GripVertical, ChevronRight, L
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Dialog,
   DialogContent,
@@ -130,6 +131,12 @@ export function FolderTree() {
   const [createSlug, setCreateSlug] = useState("")
   const [createDesc, setCreateDesc] = useState("")
 
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editNodeId, setEditNodeId] = useState<string | null>(null)
+  const [editName, setEditName] = useState("")
+  const [editSlug, setEditSlug] = useState("")
+  const [editDesc, setEditDesc] = useState("")
+
   const handleCreate = useCallback(
     ({ parentId }: { parentId: string | null; type?: string }) => {
       if (!orgId) return
@@ -143,27 +150,52 @@ export function FolderTree() {
     [orgId],
   )
 
-  const handleRename = useCallback(
-    ({ id, name }: { id: string; name: string }) => {
-      if (!orgId) return
-      updateFolder.mutate({ orgId, id, body: { name } })
-    },
-    [orgId, updateFolder],
-  )
+  const openEditDialog = (node: TreeNode) => {
+    setEditNodeId(node.id)
+    setEditName(node.name)
+    setEditSlug(node.slug)
+    setEditDesc(node.description ?? "")
+    setEditDialogOpen(true)
+  }
+
+  const submitEdit = () => {
+    if (!orgId || !editNodeId || !editName || !editSlug) return
+    updateFolder.mutate({
+      orgId,
+      id: editNodeId,
+      body: { name: editName, slug: editSlug, description: editDesc || undefined },
+    })
+    setEditDialogOpen(false)
+  }
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteNodeId, setDeleteNodeId] = useState<string | null>(null)
+  const [deleteNodeName, setDeleteNodeName] = useState("")
+  const [deleteConfirm, setDeleteConfirm] = useState("")
+
+  const openDeleteDialog = (node: TreeNode) => {
+    setDeleteNodeId(node.id)
+    setDeleteNodeName(node.name)
+    setDeleteConfirm("")
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (!orgId || !deleteNodeId || deleteConfirm !== deleteNodeName) return
+    const flat = flatFolders?.find((f) => f.id === deleteNodeId)
+    if (flat && currentFolder?.id === deleteNodeId) {
+      const parentSlugs = currentPath.slice(0, -1)
+      navigate(`/dashboard/${selectedOrg?.slug}/${parentSlugs.join("/")}`.replace(/\/$/, ""), { replace: true })
+    }
+    deleteFolder.mutate({ orgId, id: deleteNodeId })
+    setDeleteDialogOpen(false)
+  }
 
   const handleDelete = useCallback(
-    ({ ids }: { ids: string[] }) => {
-      if (!orgId) return
-      for (const id of ids) {
-        const flat = flatFolders?.find((f) => f.id === id)
-        if (flat && currentFolder?.id === id) {
-          const parentSlugs = currentPath.slice(0, -1)
-          navigate(`/dashboard/${selectedOrg?.slug}/${parentSlugs.join("/")}`.replace(/\/$/, ""), { replace: true })
-        }
-        deleteFolder.mutate({ orgId, id })
-      }
+    (_args: { ids: string[] }) => {
+      // handled via dialog
     },
-    [orgId, deleteFolder, flatFolders, currentFolder, currentPath, selectedOrg, navigate],
+    [],
   )
 
   const handleMove = useCallback(
@@ -197,8 +229,6 @@ export function FolderTree() {
 
   const NodeRenderer = ({ node, style, dragHandle }: NodeRendererProps<TreeNode>) => {
     const data = node.data
-    const editing = node.isEditing
-
     const nodePath = getNodePath(node)
     const isCurrent = currentFolder?.id === data.id
 
@@ -226,35 +256,14 @@ export function FolderTree() {
           onClick={() => handleNavigateToFolder(data, nodePath)}
         >
           <span className="shrink-0">
-            {currentFolder?.id === data.id ? (
+            {isCurrent ? (
               <FolderOpen className="h-4 w-4 text-sidebar-accent-foreground" />
             ) : (
               <Folder className="h-4 w-4 text-sidebar-foreground/70" />
             )}
           </span>
 
-          {editing ? (
-            <form
-              className="flex-1 min-w-0"
-              onSubmit={(e) => {
-                e.preventDefault()
-                const input = (e.target as HTMLFormElement).querySelector("input")
-                if (input) node.submit(input.value)
-              }}
-            >
-              <Input
-                autoFocus
-                defaultValue={data.name}
-                className="h-6 py-0 px-1 text-xs !bg-white !text-black"
-                onBlur={() => node.reset()}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") node.reset()
-                }}
-              />
-            </form>
-          ) : (
-            <span className="flex-1 truncate text-sm">{data.name}</span>
-          )}
+          <span className="flex-1 truncate text-sm">{data.name}</span>
         </button>
 
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
@@ -264,7 +273,7 @@ export function FolderTree() {
             className="h-6 w-6"
             onClick={(e) => {
               e.stopPropagation()
-              handleCreate({ parentId: data.id, type: "internal" })
+              handleCreate({ parentId: data.id })
             }}
           >
             <Plus className="h-3 w-3" />
@@ -275,7 +284,7 @@ export function FolderTree() {
             className="h-6 w-6"
             onClick={(e) => {
               e.stopPropagation()
-              node.edit()
+              openEditDialog(data)
             }}
           >
             <Pencil className="h-3 w-3" />
@@ -286,7 +295,7 @@ export function FolderTree() {
             className="h-6 w-6 text-destructive hover:text-destructive"
             onClick={(e) => {
               e.stopPropagation()
-              handleDelete({ ids: [data.id] })
+              openDeleteDialog(data)
             }}
           >
             <Trash2 className="h-3 w-3" />
@@ -315,8 +324,16 @@ export function FolderTree() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-4">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      <div className="flex-1 min-h-0 flex flex-col space-y-2">
+        <div className="flex items-center justify-between px-2">
+          <span className="text-xs font-medium text-sidebar-foreground/70">Workspaces</span>
+        </div>
+        <div className="flex-1 min-h-0 space-y-1 px-2">
+          <Skeleton className="h-6 w-3/4 !bg-sidebar-accent/30" />
+          <Skeleton className="h-6 w-1/2 ml-4 !bg-sidebar-accent/30" />
+          <Skeleton className="h-6 w-2/3 ml-4 !bg-sidebar-accent/30" />
+          <Skeleton className="h-6 w-1/3 !bg-sidebar-accent/30" />
+        </div>
       </div>
     )
   }
@@ -325,7 +342,7 @@ export function FolderTree() {
     <>
       <div className="flex-1 min-h-0 flex flex-col space-y-2">
         <div className="flex items-center justify-between px-2">
-          <span className="text-xs font-medium text-sidebar-foreground/70">Folders</span>
+          <span className="text-xs font-medium text-sidebar-foreground/70">Workspaces</span>
           <Button
             variant="ghost"
             size="icon"
@@ -342,7 +359,6 @@ export function FolderTree() {
               ref={treeRef}
               data={treeData}
               onCreate={handleCreate}
-              onRename={handleRename}
               onDelete={handleDelete}
               onMove={handleMove}
               width="100%"
@@ -422,6 +438,111 @@ export function FolderTree() {
               </p>
             )}
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Folder</DialogTitle>
+            <DialogDescription>Rename or update folder details.</DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => { e.preventDefault(); submitEdit() }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => {
+                  setEditName(e.target.value)
+                  if (editSlug === slugFromName(editName)) {
+                    setEditSlug(slugFromName(e.target.value))
+                  }
+                }}
+                placeholder="My Folder"
+                required
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-slug">Slug</Label>
+              <Input
+                id="edit-slug"
+                value={editSlug}
+                onChange={(e) => setEditSlug(e.target.value)}
+                placeholder="my-folder"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-desc">Description</Label>
+              <Input
+                id="edit-desc"
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+                placeholder="Optional description"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="ghost" onClick={() => setEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!editName || !editSlug || updateFolder.isPending}>
+                {updateFolder.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                Save
+              </Button>
+            </div>
+            {updateFolder.isError && (
+              <p className="text-sm text-destructive">
+                {updateFolder.error instanceof Error ? updateFolder.error.message : "Failed to update"}
+              </p>
+            )}
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Folder</DialogTitle>
+            <DialogDescription>
+              This will permanently delete <strong>&quot;{deleteNodeName}&quot;</strong> and all nested subfolders.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirm">
+                Type <span className="font-semibold">{deleteNodeName}</span> to confirm
+              </Label>
+              <Input
+                id="delete-confirm"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder={deleteNodeName}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="ghost" onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmDelete}
+                disabled={deleteConfirm !== deleteNodeName || deleteFolder.isPending}
+              >
+                {deleteFolder.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                Delete
+              </Button>
+            </div>
+            {deleteFolder.isError && (
+              <p className="text-sm text-destructive">
+                {deleteFolder.error instanceof Error ? deleteFolder.error.message : "Failed to delete"}
+              </p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </>

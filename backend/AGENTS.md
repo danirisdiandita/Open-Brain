@@ -1,5 +1,7 @@
 # AGENTS.md — Open Brain Backend
 
+> **Rule:** Do not run `./push.sh` unless explicitly asked by the user.
+
 FastAPI backend for the Open Brain dashboard (RAG-based second brain).
 
 ## Project Structure

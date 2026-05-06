@@ -1,5 +1,7 @@
 # AGENTS.md — Open Brain Frontend
 
+> **Rule:** Do not run `./push.sh` unless explicitly asked by the user.
+
 Vite + React + TypeScript frontend consuming the FastAPI backend.
 
 ## Project Structure
