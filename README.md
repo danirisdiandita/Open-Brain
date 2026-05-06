@@ -6,6 +6,8 @@
 
 A self-organizing wiki powered by LLM and RAG. Great for people with ADHD — dump your thoughts, get instant answers, and let the AI keep everything organized.
 
+**The core idea:** you just dump everything — links, notes, documents, random thoughts — and the AI automatically categorizes, links, and organizes it all. No folders, no tags, no friction.
+
 ## Prerequisites
 
 - Python 3.11+
