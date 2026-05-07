@@ -37,3 +37,6 @@ class Folder(Base):
     children: Mapped[list["Folder"]] = relationship(
         back_populates="parent", cascade="all, delete-orphan"
     )
+    notes: Mapped[list["Note"]] = relationship(
+        back_populates="folder", cascade="all, delete-orphan"
+    )

@@ -15,6 +15,8 @@ from app.models.user import User  # noqa: F401 — ensure models are imported
 from app.models.organization import Organization  # noqa: F401
 from app.models.user_organization import UserOrganization  # noqa: F401
 from app.models.folder import Folder  # noqa: F401
+from app.models.note import Note  # noqa: F401
+from app.models.chunk import Chunk  # noqa: F401
 
 settings = get_settings()
 config = context.config
