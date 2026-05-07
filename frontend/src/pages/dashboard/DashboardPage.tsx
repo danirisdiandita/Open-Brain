@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router-dom"
 import { Card, CardContent } from "@/components/ui/card"
-import { FoldersEmptyState } from "@/components/FoldersEmptyState"
+import { FolderFlow } from "@/components/FolderFlow"
 
 export default function DashboardPage() {
   const [searchParams] = useSearchParams()
@@ -23,7 +23,11 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      <FoldersEmptyState />
+      <div className="space-y-2">
+        <h2 className="text-xl font-semibold tracking-tight">Workspace Structure</h2>
+        <p className="text-sm text-muted-foreground">Visual overview of your organization's knowledge base tree</p>
+        <FolderFlow />
+      </div>
     </div>
   )
 }
