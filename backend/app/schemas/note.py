@@ -1,6 +1,7 @@
 from datetime import datetime
+from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 
 class NoteCreate(BaseModel):
@@ -19,17 +20,21 @@ class NoteUpdate(BaseModel):
 
 
 class NoteResponse(BaseModel):
-    id: str
-    organization_id: str
-    folder_id: str | None = None
+    id: UUID
+    organization_id: UUID
+    folder_id: UUID | None = None
     title: str
     slug: str
     content: str | None = None
     content_type: str
     is_published: bool
     order_index: int
-    created_by: str
+    created_by: UUID
     created_at: datetime | str
     updated_at: datetime | str
 
     model_config = {"from_attributes": True}
+
+    @field_serializer("id", "organization_id", "folder_id", "created_by")
+    def serialize_uuid(self, v: UUID, _info) -> str:
+        return str(v)
