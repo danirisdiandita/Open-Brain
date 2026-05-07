@@ -81,6 +81,7 @@ async def create_note(
     )
     db.add(note)
     await db.flush()
+    await db.refresh(note)
     return note
 
 
@@ -109,6 +110,7 @@ async def update_note(
         note.folder_id = folder_id
 
     await db.flush()
+    await db.refresh(note)
     return note
 
 
