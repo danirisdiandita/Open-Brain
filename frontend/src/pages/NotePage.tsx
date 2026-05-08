@@ -20,6 +20,8 @@ export default function NotePage() {
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
 
+  console.log('note', note)
+
   useEffect(() => {
     if (note) {
       setTitle(note.title)
@@ -91,7 +93,8 @@ export default function NotePage() {
       </div>
 
       <NoteEditor
-        content={content}
+        key={noteId}
+        content={note.content ?? ""}
         onChange={setContent}
       />
     </div>
