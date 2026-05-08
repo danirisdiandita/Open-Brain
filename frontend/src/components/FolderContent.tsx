@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { FileText, Plus, Pencil, Trash2, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -12,9 +13,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { NoteEditor } from "@/components/NoteEditor"
 import { useOrganization } from "@/contexts/OrganizationContext"
-import { useNotes, useCreateNote, useUpdateNote, useDeleteNote } from "@/hooks/useNotes"
+import { useNotes, useCreateNote, useDeleteNote } from "@/hooks/useNotes"
 import type { NoteResponse } from "@/api/note"
 
 function slugFromName(name: string) {
@@ -27,20 +27,16 @@ interface FolderContentProps {
 
 export function FolderContent({ folderId }: FolderContentProps) {
   const { selectedOrg } = useOrganization()
+  const navigate = useNavigate()
   const orgId = selectedOrg?.id
   const { data: notes, isLoading, isPending } = useNotes(orgId, folderId)
   const createNote = useCreateNote()
-  const updateNote = useUpdateNote()
   const deleteNote = useDeleteNote()
 
   const [createOpen, setCreateOpen] = useState(false)
   const [createTitle, setCreateTitle] = useState("")
   const [createSlug, setCreateSlug] = useState("")
 
-  const [editingNote, setEditingNote] = useState<NoteResponse | null>(null)
-  const [editContent, setEditContent] = useState("")
-  const [editTitle, setEditTitle] = useState("")
-  const [editSlug, setEditSlug] = useState("")
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
   const submitCreate = () => {
@@ -54,16 +50,6 @@ export function FolderContent({ folderId }: FolderContentProps) {
     setCreateSlug("")
   }
 
-  const submitUpdate = () => {
-    if (!orgId || !editingNote || !editTitle || !editSlug) return
-    updateNote.mutate({
-      orgId,
-      id: editingNote.id,
-      body: { title: editTitle, slug: editSlug, content: editContent || "" },
-    })
-    setEditingNote(null)
-  }
-
   const confirmDelete = () => {
     if (!orgId || !deleteConfirm) return
     deleteNote.mutate({ orgId, id: deleteConfirm })
@@ -71,10 +57,7 @@ export function FolderContent({ folderId }: FolderContentProps) {
   }
 
   const openEditor = (note: NoteResponse) => {
-    setEditingNote(note)
-    setEditTitle(note.title)
-    setEditSlug(note.slug)
-    setEditContent(note.content ?? "")
+    navigate(`/dashboard/${selectedOrg?.slug}/note/${note.id}`)
   }
 
   if (!orgId) return null
@@ -199,55 +182,6 @@ export function FolderContent({ folderId }: FolderContentProps) {
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={editingNote !== null}
-        onOpenChange={(open) => {
-          if (!open) setEditingNote(null)
-        }}
-      >
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Note</DialogTitle>
-          </DialogHeader>
-          {editingNote && (
-            <div className="space-y-4">
-              <div className="flex gap-3">
-                <div className="flex-1 space-y-2">
-                  <Label htmlFor="edit-note-title">Title</Label>
-                  <Input
-                    id="edit-note-title"
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                  />
-                </div>
-                <div className="flex-1 space-y-2">
-                  <Label htmlFor="edit-note-slug">Slug</Label>
-                  <Input
-                    id="edit-note-slug"
-                    value={editSlug}
-                    onChange={(e) => setEditSlug(e.target.value)}
-                  />
-                </div>
-              </div>
-              <NoteEditor
-                content={editContent}
-                onChange={setEditContent}
-                placeholder="Write your note content..."
-              />
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="ghost" onClick={() => setEditingNote(null)}>
-                  Cancel
-                </Button>
-                <Button onClick={submitUpdate} disabled={updateNote.isPending}>
-                  {updateNote.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
-                  Save
-                </Button>
-              </div>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
 

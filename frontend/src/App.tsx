@@ -9,6 +9,7 @@ import {
   VerifyEmailPage,
 } from "@/pages/auth"
 import { DashboardLayout, DashboardPage, FolderPage } from "@/pages/dashboard"
+import NotePage from "@/pages/NotePage"
 import { OnboardingGuard } from "@/components/OnboardingGuard"
 import LandingPage from "@/pages/LandingPage"
 import NotFoundPage from "@/pages/NotFoundPage"
@@ -55,6 +56,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <OnboardingGuard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/:orgSlug/note/:noteId"
+            element={
+              <ProtectedRoute>
+                <NotePage />
               </ProtectedRoute>
             }
           />
