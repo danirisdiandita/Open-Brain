@@ -93,7 +93,6 @@ export default function NotePage() {
       <NoteEditor
         content={content}
         onChange={setContent}
-        placeholder="Start writing your note..."
       />
     </div>
   )
