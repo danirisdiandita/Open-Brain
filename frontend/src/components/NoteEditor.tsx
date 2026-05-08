@@ -17,6 +17,13 @@ const TabHandler = Extension.create({
       "Shift-Tab": () => {
         return true
       },
+      "Mod-Enter": ({ editor }) => {
+        if (editor.isActive("codeBlock")) {
+          editor.commands.exitCode()
+          return true
+        }
+        return false
+      },
     }
   },
 })
@@ -26,6 +33,10 @@ const defaultContent = { type: "doc", content: [] }
 const extensions = [
   StarterKit.configure({
     heading: { levels: [1, 2] },
+    codeBlock: {
+      exitOnTripleEnter: true,
+      exitOnArrowDown: true,
+    },
   }),
   Placeholder,
   TabHandler,
