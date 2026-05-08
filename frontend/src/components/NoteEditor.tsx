@@ -54,17 +54,19 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
   })()
 
   return (
-    <EditorRoot>
-      <EditorContent
-        initialContent={initialContent}
-        extensions={extensions}
-        onUpdate={handleUpdate}
-        editorProps={{
-          attributes: {
-            class: "prose prose-sm max-w-none focus:outline-none min-h-[200px] p-4",
-          },
-        }}
-      />
-    </EditorRoot>
+    <div className="h-full">
+      <EditorRoot>
+        <EditorContent
+          initialContent={initialContent}
+          extensions={extensions}
+          onUpdate={handleUpdate}
+          editorProps={{
+            attributes: {
+              class: "prose prose-sm max-w-none focus:outline-none min-h-full p-4",
+            },
+          }}
+        />
+      </EditorRoot>
+    </div>
   )
 }
