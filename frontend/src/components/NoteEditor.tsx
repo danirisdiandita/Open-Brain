@@ -1,5 +1,25 @@
 import { useCallback } from "react"
+import { Extension } from "@tiptap/core"
 import { EditorRoot, EditorContent, type EditorInstance, StarterKit, Placeholder } from "novel"
+
+const TabHandler = Extension.create({
+  name: "tabHandler",
+  addKeyboardShortcuts() {
+    return {
+      Tab: ({ editor }) => {
+        if (editor.isActive("codeBlock")) {
+          editor.commands.insertContent("  ")
+        } else {
+          editor.commands.insertContent("\t")
+        }
+        return true
+      },
+      "Shift-Tab": () => {
+        return true
+      },
+    }
+  },
+})
 
 const defaultContent = { type: "doc", content: [] }
 
@@ -8,6 +28,7 @@ const extensions = [
     heading: { levels: [1, 2] },
   }),
   Placeholder,
+  TabHandler,
 ]
 
 interface NoteEditorProps {
