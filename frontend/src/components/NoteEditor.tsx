@@ -1,5 +1,4 @@
 import { useMemo, useEffect, useRef } from "react"
-import "@yoopta/themes-shadcn/variables.css"
 import YooptaEditor, { createYooptaEditor, type YooptaContentValue } from "@yoopta/editor"
 import Paragraph from "@yoopta/paragraph"
 import { HeadingOne, HeadingTwo } from "@yoopta/headings"
