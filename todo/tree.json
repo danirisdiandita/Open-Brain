@@ -1,0 +1,46 @@
+{
+  "roots": [
+    {
+      "id": "uuid-1",
+      "name": "Engineering",
+      "slug": "engineering",
+      "description": "Engineering workspace",
+      "order_index": 0,
+      "children": [
+        {
+          "id": "uuid-2",
+          "name": "Frontend",
+          "slug": "frontend",
+          "description": null,
+          "order_index": 0,
+          "children": [
+            {
+              "id": "uuid-3",
+              "name": "Components",
+              "slug": "components",
+              "description": null,
+              "order_index": 0,
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "uuid-4",
+          "name": "Backend",
+          "slug": "backend",
+          "description": null,
+          "order_index": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "uuid-5",
+      "name": "Design",
+      "slug": "design",
+      "description": null,
+      "order_index": 1,
+      "children": []
+    }
+  ]
+}

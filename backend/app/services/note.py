@@ -39,9 +39,12 @@ async def list_notes(
     db: AsyncSession, org_id: uuid.UUID, folder_id: uuid.UUID | None, user: User
 ) -> list[Note]:
     await _check_membership(db, org_id, user.id)
+    conditions = [Note.organization_id == org_id]
+    if folder_id is not None:
+        conditions.append(Note.folder_id == folder_id)
     query = (
         select(Note)
-        .where(Note.organization_id == org_id, Note.folder_id == folder_id)
+        .where(*conditions)
         .order_by(Note.order_index, Note.created_at)
     )
     result = await db.execute(query)
