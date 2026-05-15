@@ -1,83 +1,72 @@
-import { useCallback } from "react"
-import { Extension } from "@tiptap/core"
-import { EditorRoot, EditorContent, type EditorInstance, StarterKit, Placeholder } from "novel"
+import { useMemo, useEffect, useRef } from "react"
+import YooptaEditor, { createYooptaEditor, type YooptaContentValue } from "@yoopta/editor"
+import Paragraph from "@yoopta/paragraph"
+import { HeadingOne, HeadingTwo } from "@yoopta/headings"
+import Blockquote from "@yoopta/blockquote"
+import { BulletedList, NumberedList } from "@yoopta/lists"
+import { Code } from "@yoopta/code"
+import { Bold, Italic, CodeMark, Underline, Strike } from "@yoopta/marks"
+import { applyTheme } from "@yoopta/themes-shadcn"
+import { FloatingToolbar, FloatingBlockActions, SlashCommandMenu } from "@yoopta/ui"
 
-const TabHandler = Extension.create({
-  name: "tabHandler",
-  addKeyboardShortcuts() {
-    return {
-      Tab: ({ editor }) => {
-        if (editor.isActive("codeBlock")) {
-          editor.commands.insertContent("  ")
-        } else {
-          editor.commands.insertContent("\t")
-        }
-        return true
-      },
-      "Shift-Tab": () => {
-        return true
-      },
-      "Mod-Enter": ({ editor }) => {
-        if (editor.isActive("codeBlock")) {
-          editor.commands.exitCode()
-          return true
-        }
-        return false
-      },
-    }
-  },
-})
+const plugins = applyTheme([
+  Paragraph,
+  HeadingOne,
+  HeadingTwo,
+  Blockquote,
+  BulletedList,
+  NumberedList,
+  Code,
+])
 
-const defaultContent = { type: "doc", content: [] }
-
-const extensions = [
-  StarterKit.configure({
-    heading: { levels: [1, 2] },
-    codeBlock: {
-      exitOnTripleEnter: true,
-      exitOnArrowDown: true,
-    },
-  }),
-  Placeholder,
-  TabHandler,
-]
+const marks = [Bold, Italic, CodeMark, Underline, Strike]
 
 interface NoteEditorProps {
   content: string
   onChange: (html: string) => void
 }
 
+function parseContent(raw: string) {
+  if (!raw) return undefined
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return undefined
+  }
+}
+
 export function NoteEditor({ content, onChange }: NoteEditorProps) {
-  const handleUpdate = useCallback(
-    ({ editor }: { editor: EditorInstance }) => {
-      onChange(editor.getHTML())
-    },
-    [onChange],
+  const initialValue = useMemo(() => parseContent(content), [])
+  const editorRef = useRef<ReturnType<typeof createYooptaEditor>>(null)
+
+  const editor = useMemo(
+    () => createYooptaEditor({ plugins, marks, value: initialValue }),
+    [],
   )
 
-  const initialContent = (() => {
-    if (!content) return defaultContent
-    try {
-      return JSON.parse(content)
-    } catch {
-      return content
-    }
-  })()
+  useEffect(() => {
+    editorRef.current = editor
+  }, [editor])
+
+  const handleChange = (_value: YooptaContentValue, _options?: unknown) => {
+    const ed = editorRef.current
+    if (!ed) return
+    const json = JSON.stringify(ed.children)
+    onChange(json)
+  }
 
   return (
-    <div className="h-full">
-      <EditorRoot>
-        <EditorContent
-          initialContent={initialContent}
-          extensions={extensions}
-          onUpdate={handleUpdate}
-          editorProps={{
-            attributes: {
-              class: "prose prose-sm max-w-none focus:outline-none min-h-full p-4",
-            },
-          }}
-        />
-      </EditorRoot>
+    <div className="h-full flex flex-col">
+      <YooptaEditor
+        editor={editor}
+        onChange={handleChange}
+        placeholder="Type / to open menu..."
+        autoFocus
+      >
+        <FloatingToolbar />
+        <FloatingBlockActions />
+        <SlashCommandMenu />
+      </YooptaEditor>
     </div>
   )
 }
