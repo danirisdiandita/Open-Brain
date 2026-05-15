@@ -36,7 +36,8 @@ async def _ensure_unique_note_slug(
 
 
 async def list_notes(
-    db: AsyncSession, org_id: uuid.UUID, folder_id: uuid.UUID | None, user: User
+    db: AsyncSession, org_id: uuid.UUID, folder_id: uuid.UUID | None, user: User,
+    skip: int = 0, limit: int = 20,
 ) -> list[Note]:
     await _check_membership(db, org_id, user.id)
     conditions = [Note.organization_id == org_id]
@@ -46,6 +47,8 @@ async def list_notes(
         select(Note)
         .where(*conditions)
         .order_by(Note.order_index, Note.created_at)
+        .offset(skip)
+        .limit(limit)
     )
     result = await db.execute(query)
     return list(result.scalars().all())

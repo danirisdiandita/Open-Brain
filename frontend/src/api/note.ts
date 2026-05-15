@@ -31,9 +31,13 @@ export interface NoteResponse {
 }
 
 export const noteApi = {
-  list: (orgId: string, folderId?: string) =>
+  list: (orgId: string, folderId?: string, skip = 0, limit = 20) =>
     api.get<NoteResponse[]>("/organizations/" + orgId + "/notes", {
-      params: folderId ? { folder_id: folderId } : {},
+      params: {
+        ...(folderId ? { folder_id: folderId } : {}),
+        skip,
+        limit,
+      },
     }).then((r) => r.data),
 
   get: (orgId: string, id: string) =>

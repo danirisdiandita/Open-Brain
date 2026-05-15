@@ -1,10 +1,25 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { noteApi, type NotePayload, type NoteUpdatePayload } from "@/api/note"
+
+const PAGE_SIZE = 20
 
 export function useNotes(orgId?: string, folderId?: string) {
   return useQuery({
     queryKey: ["notes", orgId, folderId],
     queryFn: () => noteApi.list(orgId!, folderId),
+    enabled: !!orgId,
+  })
+}
+
+export function useInfiniteNotes(orgId?: string, folderId?: string) {
+  return useInfiniteQuery({
+    queryKey: ["notes", orgId, folderId, "infinite"],
+    queryFn: ({ pageParam = 0 }) => noteApi.list(orgId!, folderId, pageParam, PAGE_SIZE),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < PAGE_SIZE) return undefined
+      return allPages.length * PAGE_SIZE
+    },
     enabled: !!orgId,
   })
 }

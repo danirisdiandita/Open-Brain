@@ -23,11 +23,13 @@ router = APIRouter(prefix="/organizations/{org_id}/notes", tags=["notes"])
 async def list_org_notes(
     org_id: uuid.UUID,
     folder_id: uuid.UUID | None = None,
+    skip: int = 0,
+    limit: int = 20,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        return await list_notes(db, org_id, folder_id, user)
+        return await list_notes(db, org_id, folder_id, user, skip, limit)
     except NoteError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
 
