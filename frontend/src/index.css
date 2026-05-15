@@ -106,17 +106,10 @@
 .ProseMirror:focus {
   outline: none;
 }
-
-.yoopta-placeholder {
-  position: relative;
-}
-.yoopta-placeholder::before {
+.ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
-  position: absolute;
-  top: 0;
-  left: 0;
+  float: left;
+  color: hsl(var(--muted-foreground));
   pointer-events: none;
-  opacity: 0.4;
-  white-space: nowrap;
-  user-select: none;
+  height: 0;
 }

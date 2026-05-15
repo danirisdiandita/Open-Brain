@@ -17,29 +17,6 @@ import { useOrganization } from "@/contexts/OrganizationContext"
 import { useNotes, useCreateNote, useDeleteNote } from "@/hooks/useNotes"
 import type { NoteResponse } from "@/api/note"
 
-function extractPreview(content: string | null): string {
-  if (!content) return "No content yet"
-  try {
-    const json = JSON.parse(content)
-    if (json && typeof json === "object" && !Array.isArray(json)) {
-      let text = ""
-      for (const block of Object.values(json) as any[]) {
-        if (block?.value) {
-          for (const el of block.value) {
-            if (el?.children) {
-              for (const child of el.children) {
-                if (child?.text) text += child.text + " "
-              }
-            }
-          }
-        }
-      }
-      return text.slice(0, 120) || "No content yet"
-    }
-  } catch {}
-  return content.replace(/<[^>]+>/g, "").slice(0, 120) || "No content yet"
-}
-
 function slugFromName(name: string) {
   return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
 }
@@ -129,7 +106,9 @@ export function FolderContent({ folderId }: FolderContentProps) {
                 <div className="min-w-0">
                   <h3 className="font-semibold text-sm truncate">{note.title}</h3>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                    {extractPreview(note.content)}
+                    {note.content
+                      ? note.content.replace(/<[^>]+>/g, "").slice(0, 120)
+                      : "No content yet"}
                   </p>
                 </div>
                 <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
