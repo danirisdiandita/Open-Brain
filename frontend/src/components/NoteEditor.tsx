@@ -63,6 +63,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         onChange={handleChange}
         placeholder="Type / to open menu..."
         autoFocus
+        style={{ minHeight: "400px" }}
       >
         <FloatingToolbar />
         <FloatingBlockActions />
