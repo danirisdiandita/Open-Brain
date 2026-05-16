@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     verify_email_redirect: str = "http://localhost:5173/verify-email"
     reset_password_redirect: str = "http://localhost:5173/reset-password"
 
+    # AI
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4.1-mini"
+
 
 @lru_cache
 def get_settings() -> Settings:

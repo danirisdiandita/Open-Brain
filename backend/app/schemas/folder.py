@@ -27,12 +27,29 @@ class FolderResponse(FolderBase):
     model_config = ConfigDict(from_attributes=True)
 
 class FolderTreeNode(BaseModel):
-    id: uuid.UUID
     name: str
     slug: str
-    description: str | None
-    order_index: int
+    description: str | None = None
+    order_index: int = 0
     children: list["FolderTreeNode"] = []
+    is_existing: bool = False
+
+class FoldersOutput(BaseModel):
+    roots: list[FolderTreeNode]
 
 class FolderTreeResponse(BaseModel):
+    roots: list[FolderTreeNode]
+
+
+class GenerateFoldersRequest(BaseModel):
+    description: str
+
+
+class GenerateFoldersResponse(BaseModel):
+    roots: list[FolderTreeNode]
+    existing_count: int
+    new_count: int
+
+
+class ApplyFoldersRequest(BaseModel):
     roots: list[FolderTreeNode]

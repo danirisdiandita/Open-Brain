@@ -30,46 +30,45 @@ import {
 import "@xyflow/react/dist/style.css"
 import { useOrganization } from "@/contexts/OrganizationContext"
 import { useFolders } from "@/hooks/useFolders"
+import {
+  useGenerateFolders,
+  useApplyGeneratedFolders,
+} from "@/hooks/useFolders"
 import { useNotes, useCreateNote, useUploadNote, useDeleteNote, useUpdateNote } from "@/hooks/useNotes"
 import type { NoteResponse } from "@/api/note"
 import type { FolderResponse } from "@/api/folder"
-
-const sampleTree: { roots: MockTreeNode[] } = {
-  roots: [
-    {
-      id: "uuid-1", name: "Engineering",
-      children: [
-        {
-          id: "uuid-2", name: "Frontend",
-          children: [
-            { id: "uuid-3", name: "Components", children: [] },
-          ],
-        },
-        { id: "uuid-4", name: "Backend", children: [] },
-      ],
-    },
-    { id: "uuid-5", name: "Design", children: [] },
-  ],
-}
+import type { FolderTreeNode } from "@/api/folder"
 
 interface MockTreeNode {
   id: string
   name: string
+  label: string
+  isExisting: boolean
   children: MockTreeNode[]
+}
+
+function convertToMockTree(node: FolderTreeNode, depth = 0): MockTreeNode {
+  return {
+    id: `ai-${node.slug}-${depth}`,
+    name: node.name,
+    label: node.name,
+    isExisting: node.is_existing,
+    children: node.children.map((c, _i) => convertToMockTree(c, depth + 1)),
+  }
 }
 
 function layoutMockTree(tree: MockTreeNode[], x = 0, y = 0): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = []
   const edges: Edge[] = []
   const dx = 180
-  const dy = 48
+  const dy = 44
   let currentY = y
 
   for (const node of tree) {
     nodes.push({
       id: node.id,
       type: "miniFolder",
-      data: { label: node.name },
+      data: { label: node.label, isExisting: node.isExisting },
       position: { x, y: currentY },
     })
 
@@ -91,7 +90,7 @@ function layoutMockTree(tree: MockTreeNode[], x = 0, y = 0): { nodes: Node[]; ed
       })
     }
 
-    currentY += dy * (countMockNodes(node))
+    currentY += dy * countMockNodes(node)
   }
 
   return { nodes, edges }
@@ -103,11 +102,18 @@ function countMockNodes(t: MockTreeNode): number {
   return c
 }
 
-function MiniFolderNode({ data }: { data: { label: string } }) {
+function MiniFolderNode({ data }: { data: { label: string; isExisting?: boolean } }) {
+  const isExisting = data.isExisting
   return (
-    <div className="flex items-center gap-1.5 bg-[#021b33] text-slate-200 border border-[#383782] rounded-lg px-3 py-1.5 text-xs font-medium cursor-default whitespace-nowrap select-none">
+    <div
+      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium cursor-default whitespace-nowrap select-none ${
+        isExisting
+          ? "bg-muted/50 text-muted-foreground border border-dashed border-muted-foreground/30"
+          : "bg-[#021b33] text-slate-200 border border-[#383782]"
+      }`}
+    >
       <Handle type="target" position={Position.Left} style={{ visibility: "hidden" }} />
-      <Folder className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
+      <Folder className={`h-3.5 w-3.5 shrink-0 ${isExisting ? "text-muted-foreground/50" : "text-indigo-400"}`} />
       <span>{data.label}</span>
       <Handle type="source" position={Position.Right} style={{ visibility: "hidden" }} />
     </div>
@@ -133,6 +139,19 @@ function getFolderPath(
   return parts.join(" > ")
 }
 
+function extractNewRoots(nodes: FolderTreeNode[]): FolderTreeNode[] {
+  return nodes
+    .map((n) => {
+      const filteredChildren = extractNewRoots(n.children)
+      if (n.is_existing && filteredChildren.length === 0) return null
+      if (n.is_existing) {
+        return { ...n, children: filteredChildren }
+      }
+      return n
+    })
+    .filter(Boolean) as FolderTreeNode[]
+}
+
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr)
   const now = new Date()
@@ -150,12 +169,14 @@ export default function DashboardPage() {
   const { selectedOrg } = useOrganization()
   const orgId = selectedOrg?.id
 
-  const { data: notes, isLoading } = useNotes(orgId)
   const { data: folders } = useFolders(orgId)
+  const { data: notes, isLoading } = useNotes(orgId)
   const createNote = useCreateNote()
   const uploadNote = useUploadNote()
   const deleteNote = useDeleteNote()
   const updateNote = useUpdateNote()
+  const generateFolders = useGenerateFolders()
+  const applyFolders = useApplyGeneratedFolders()
 
   const unassignedNotes = useMemo(
     () => notes?.filter((n) => !n.folder_id) ?? [],
@@ -176,11 +197,13 @@ export default function DashboardPage() {
   const [aiOpen, setAiOpen] = useState(false)
   const [aiDescription, setAiDescription] = useState("")
   const [aiStep, setAiStep] = useState<"prompt" | "preview" | "done">("prompt")
+  const [aiResult, setAiResult] = useState<{ roots: import("@/api/folder").FolderTreeNode[] } | null>(null)
 
   const aiFlow = useMemo(() => {
-    const tree = sampleTree.roots as MockTreeNode[]
+    if (!aiResult) return { nodes: [], edges: [] }
+    const tree = aiResult.roots.map(convertToMockTree)
     return layoutMockTree(tree)
-  }, [])
+  }, [aiResult])
 
   const aiNodeTypes = useMemo(() => ({ miniFolder: MiniFolderNode }), [])
 
@@ -573,8 +596,26 @@ export default function DashboardPage() {
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={() => setAiOpen(false)}>Cancel</Button>
-                <Button onClick={() => setAiStep("preview")} disabled={!aiDescription.trim()}>
-                  <Sparkles className="mr-2 h-4 w-4" />
+                <Button
+                  onClick={() => {
+                    if (!orgId || !aiDescription.trim()) return
+                    generateFolders.mutate(
+                      { orgId, description: aiDescription },
+                      {
+                        onSuccess: (data) => {
+                          setAiResult(data)
+                          setAiStep("preview")
+                        },
+                      },
+                    )
+                  }}
+                  disabled={!aiDescription.trim() || generateFolders.isPending}
+                >
+                  {generateFolders.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 h-4 w-4" />
+                  )}
                   Generate
                 </Button>
               </div>
@@ -608,9 +649,23 @@ export default function DashboardPage() {
               </p>
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={() => setAiStep("prompt")}>Back</Button>
-                <Button onClick={() => setAiStep("done")}>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Looks Good, Create
+                <Button
+                  onClick={() => {
+                    if (!orgId || !aiResult) return
+                    const newRoots = extractNewRoots(aiResult.roots)
+                    applyFolders.mutate(
+                      { orgId, roots: newRoots },
+                      { onSuccess: () => setAiStep("done") },
+                    )
+                  }}
+                  disabled={applyFolders.isPending}
+                >
+                  {applyFolders.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 h-4 w-4" />
+                  )}
+                  Create Folders
                 </Button>
               </div>
             </div>
@@ -620,9 +675,11 @@ export default function DashboardPage() {
             <div className="space-y-4">
               <div className="rounded-lg border bg-muted/30 p-4 text-center">
                 <Sparkles className="h-8 w-8 mx-auto mb-2 text-primary" />
-                <p className="text-sm text-muted-foreground">
-                  This feature is coming soon. When ready, it will automatically create the
-                  folder structure shown in the preview for your organization.
+                <p className="text-sm font-medium">
+                  Folders created successfully!
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {applyFolders.data?.created ?? 0} new folders have been added to your workspace.
                 </p>
               </div>
               <div className="flex justify-end">

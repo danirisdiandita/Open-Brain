@@ -93,20 +93,19 @@ export function FolderTree() {
   const deleteFolder = useDeleteFolder()
 
   const treeRef = useRef<any>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
   const [containerHeight, setContainerHeight] = useState(200)
+  const measureRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const el = containerRef.current
+    const el = measureRef.current
     if (!el) return
-    const update = () => {
-      if (el.clientHeight > 0) setContainerHeight(el.clientHeight)
-    }
-    update()
-    const obs = new ResizeObserver(update)
-    obs.observe(el)
-    return () => obs.disconnect()
+    const ro = new ResizeObserver(([entry]) => {
+      setContainerHeight(entry.contentRect.height)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
   }, [])
+  const containerRef = measureRef
 
   const treeData: TreeNode[] = flatFolders ? buildTree(flatFolders) : []
   const currentFolder = findNodeBySlugPath(treeData, currentPath)
@@ -340,8 +339,8 @@ export function FolderTree() {
 
   return (
     <>
-      <div className="flex-1 min-h-0 flex flex-col space-y-2">
-        <div className="flex items-center justify-between px-2">
+      <div className="flex-1 min-h-0 flex flex-col">
+        <div className="flex items-center justify-between px-2 shrink-0">
           <span className="text-xs font-medium text-sidebar-foreground/70">Workspaces</span>
           <Button
             variant="ghost"

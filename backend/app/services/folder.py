@@ -49,7 +49,6 @@ def build_folder_tree(folders: list[Folder]) -> list[dict]:
 
     for f in folders:
         node = {
-            "id": str(f.id),
             "name": f.name,
             "slug": f.slug,
             "description": f.description,

@@ -39,4 +39,25 @@ export const folderApi = {
     api.patch<FolderResponse>(`/organizations/${orgId}/folders/${id}`, body).then((r) => r.data),
 
   delete: (orgId: string, id: string) => api.delete(`/organizations/${orgId}/folders/${id}`).then((r) => r.data),
+
+  generate: (orgId: string, description: string) =>
+    api.post<{ roots: FolderTreeNode[]; existing_count: number; new_count: number }>(
+      `/organizations/${orgId}/folders/generate`,
+      { description },
+    ).then((r) => r.data),
+
+  applyGenerated: (orgId: string, roots: FolderTreeNode[]) =>
+    api.post<{ created: number }>(
+      `/organizations/${orgId}/folders/generate/apply`,
+      { roots },
+    ).then((r) => r.data),
+}
+
+export interface FolderTreeNode {
+  name: string
+  slug: string
+  description: string | null
+  order_index: number
+  children: FolderTreeNode[]
+  is_existing: boolean
 }

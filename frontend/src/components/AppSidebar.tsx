@@ -85,8 +85,8 @@ export function AppSidebar() {
 
         <SidebarSeparator />
 
-        <SidebarContent>
-          <SidebarGroup>
+        <SidebarContent className="!overflow-hidden">
+          <SidebarGroup className="shrink-0">
             <SidebarGroupLabel>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { folderApi, type FolderPayload, type FolderUpdatePayload } from "@/api/folder"
+import { folderApi, type FolderPayload, type FolderUpdatePayload, type FolderTreeNode } from "@/api/folder"
 
 export function useFolders(orgId?: string) {
   return useQuery({
@@ -37,6 +37,25 @@ export function useDeleteFolder() {
 
   return useMutation({
     mutationFn: ({ orgId, id }: { orgId: string; id: string }) => folderApi.delete(orgId, id),
+    onSuccess: (_, { orgId }) => {
+      queryClient.invalidateQueries({ queryKey: ["folders", orgId] })
+    },
+  })
+}
+
+export function useGenerateFolders() {
+  return useMutation({
+    mutationFn: ({ orgId, description }: { orgId: string; description: string }) =>
+      folderApi.generate(orgId, description),
+  })
+}
+
+export function useApplyGeneratedFolders() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ orgId, roots }: { orgId: string; roots: FolderTreeNode[] }) =>
+      folderApi.applyGenerated(orgId, roots),
     onSuccess: (_, { orgId }) => {
       queryClient.invalidateQueries({ queryKey: ["folders", orgId] })
     },
