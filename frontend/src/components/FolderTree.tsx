@@ -93,19 +93,20 @@ export function FolderTree() {
   const deleteFolder = useDeleteFolder()
 
   const treeRef = useRef<any>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [containerHeight, setContainerHeight] = useState(200)
-  const measureRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const el = measureRef.current
+    const el = containerRef.current
     if (!el) return
-    const ro = new ResizeObserver(([entry]) => {
-      setContainerHeight(entry.contentRect.height)
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
+    const update = () => {
+      if (el.clientHeight > 0) setContainerHeight(el.clientHeight)
+    }
+    update()
+    const obs = new ResizeObserver(update)
+    obs.observe(el)
+    return () => obs.disconnect()
   }, [])
-  const containerRef = measureRef
 
   const treeData: TreeNode[] = flatFolders ? buildTree(flatFolders) : []
   const currentFolder = findNodeBySlugPath(treeData, currentPath)
