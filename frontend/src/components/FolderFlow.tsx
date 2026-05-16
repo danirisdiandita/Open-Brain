@@ -187,7 +187,7 @@ export function FolderFlow() {
   if (nodes.length === 0) return null
 
   return (
-    <div className="w-full h-[400px] border rounded-lg overflow-hidden bg-muted/20">
+    <div className="w-full h-full border rounded-lg overflow-hidden bg-muted/20">
       <ReactFlow
         nodes={nodes}
         edges={edges}

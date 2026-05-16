@@ -1,8 +1,7 @@
 import { useCallback, useRef, useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Tree, type NodeRendererProps } from "react-arborist"
-import { Folder, FolderOpen, Plus, Pencil, Trash2, GripVertical, ChevronRight, Loader2, MoreHorizontal } from "lucide-react"
-
+import { Folder, FolderOpen, FileText, Plus, Pencil, Trash2, GripVertical, ChevronRight, Loader2, MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -27,8 +26,10 @@ import {
   useUpdateFolder,
   useDeleteFolder,
 } from "@/hooks/useFolders"
+import { useNotes, useDeleteNote } from "@/hooks/useNotes"
 import { useCurrentFolderPath } from "@/hooks/useSyncOrgFromSlug"
 import type { FolderResponse } from "@/api/folder"
+import type { NoteResponse } from "@/api/note"
 
 interface TreeNode {
   id: string
@@ -37,13 +38,15 @@ interface TreeNode {
   description?: string
   order_index: number
   children?: TreeNode[]
+  kind?: "folder" | "note" | "group"
+  noteId?: string
 }
 
 function slugFromName(name: string) {
   return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
 }
 
-function buildTree(flat: FolderResponse[]): TreeNode[] {
+function buildTree(flat: FolderResponse[], notes: NoteResponse[]): TreeNode[] {
   const map = new Map<string, TreeNode>()
   const roots: TreeNode[] = []
 
@@ -55,6 +58,7 @@ function buildTree(flat: FolderResponse[]): TreeNode[] {
       description: f.description ?? undefined,
       order_index: f.order_index,
       children: [],
+      kind: "folder",
     })
   }
 
@@ -65,6 +69,26 @@ function buildTree(flat: FolderResponse[]): TreeNode[] {
     } else {
       roots.push(node)
     }
+  }
+
+  const unassigned = notes.filter((n) => !n.folder_id)
+  if (unassigned.length > 0) {
+    roots.push({
+      id: "__uncategorized__",
+      name: "Uncategorized",
+      slug: "uncategorized",
+      order_index: 9999,
+      kind: "group",
+      children: unassigned.map((n) => ({
+        id: `note-${n.id}`,
+        name: n.title,
+        slug: n.slug,
+        order_index: n.order_index,
+        children: [],
+        kind: "note",
+        noteId: n.id,
+      })),
+    })
   }
 
   return roots
@@ -89,9 +113,11 @@ export function FolderTree() {
   const currentPath = useCurrentFolderPath()
 
   const { data: flatFolders, isLoading } = useFolders(orgId)
+  const { data: notes } = useNotes(orgId)
   const createFolder = useCreateFolder()
   const updateFolder = useUpdateFolder()
   const deleteFolder = useDeleteFolder()
+  const deleteNote = useDeleteNote()
 
   const treeRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -109,7 +135,7 @@ export function FolderTree() {
     return () => obs.disconnect()
   }, [])
 
-  const treeData: TreeNode[] = flatFolders ? buildTree(flatFolders) : []
+  const treeData: TreeNode[] = flatFolders ? buildTree(flatFolders, notes ?? []) : []
   const currentFolder = findNodeBySlugPath(treeData, currentPath)
 
   useEffect(() => {
@@ -235,8 +261,10 @@ export function FolderTree() {
 
   const NodeRenderer = ({ node, style, dragHandle }: NodeRendererProps<TreeNode>) => {
     const data = node.data
-    const nodePath = getNodePath(node)
+    const isNote = data.kind === "note"
+    const isGroup = data.kind === "group"
     const isCurrent = currentFolder?.id === data.id
+    const nodePath = isNote || isGroup ? [] : getNodePath(node)
 
     return (
       <div
@@ -259,57 +287,84 @@ export function FolderTree() {
 
         <button
           className="flex items-center gap-1 flex-1 min-w-0 text-left"
-          onClick={() => handleNavigateToFolder(data, nodePath)}
+          onClick={() => {
+            if (isNote && data.noteId) {
+              navigate(`/dashboard/${selectedOrg?.slug}/note/${data.noteId}`)
+            } else if (!isGroup) {
+              handleNavigateToFolder(data, nodePath)
+            }
+          }}
         >
           <span className="shrink-0">
-            {isCurrent ? (
+            {isNote ? (
+              <FileText className="h-4 w-4 text-slate-400" />
+            ) : isCurrent ? (
               <FolderOpen className="h-4 w-4 text-sidebar-accent-foreground" />
             ) : (
               <Folder className="h-4 w-4 text-sidebar-foreground/70" />
             )}
           </span>
 
-          <span className="flex-1 truncate text-sm">{data.name}</span>
+          <span className={`flex-1 truncate text-sm ${isGroup ? "font-medium text-sidebar-foreground/70" : ""}`}>
+            {data.name}
+          </span>
         </button>
 
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
+        {!isGroup && (
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {!isNote && (
+                  <>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCreate({ parentId: data.id }) }}>
+                      <Plus className="mr-2 h-3 w-3" />
+                      <span>Add subfolder</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(data) }}>
+                      <Pencil className="mr-2 h-3 w-3" />
+                      <span>Edit</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (isNote && data.noteId) {
+                      if (confirm("Delete this note?")) {
+                        deleteNote.mutate({ orgId: orgId!, id: data.noteId })
+                      }
+                    } else {
+                      openDeleteDialog(data)
+                    }
+                  }}
+                >
+                  <Trash2 className="mr-2 h-3 w-3" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {!isNote && (
+              <div
+                {...dragHandle}
+                className="h-6 w-6 flex items-center justify-center cursor-grab"
                 onClick={(e) => e.stopPropagation()}
               >
-                <MoreHorizontal className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCreate({ parentId: data.id }) }}>
-                <Plus className="mr-2 h-3 w-3" />
-                <span>Add subfolder</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(data) }}>
-                <Pencil className="mr-2 h-3 w-3" />
-                <span>Edit</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={(e) => { e.stopPropagation(); openDeleteDialog(data) }}
-              >
-                <Trash2 className="mr-2 h-3 w-3" />
-                <span>Delete</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <div
-            {...dragHandle}
-            className="h-6 w-6 flex items-center justify-center cursor-grab"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GripVertical className="h-3 w-3 text-muted-foreground" />
+                <GripVertical className="h-3 w-3 text-muted-foreground" />
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
     )
   }

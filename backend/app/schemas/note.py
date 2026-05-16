@@ -36,5 +36,7 @@ class NoteResponse(BaseModel):
     model_config = {"from_attributes": True}
 
     @field_serializer("id", "organization_id", "folder_id", "created_by")
-    def serialize_uuid(self, v: UUID, _info) -> str:
+    def serialize_uuid(self, v: UUID | None, _info) -> str | None:
+        if v is None:
+            return None
         return str(v)
