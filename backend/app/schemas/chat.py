@@ -1,7 +1,8 @@
+import json
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ChatSourceSchema(BaseModel):
@@ -18,6 +19,15 @@ class ChatMessageResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @field_validator("sources", mode="before")
+    @classmethod
+    def parse_sources(cls, v: object) -> list[dict] | None:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
 
 
 class ChatSessionResponse(BaseModel):

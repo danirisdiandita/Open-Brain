@@ -82,3 +82,14 @@ async def delete_session(
     await db.delete(session)
     await db.flush()
     return True
+
+
+async def update_session_title(
+    db: AsyncSession, session_id: uuid.UUID, title: str,
+) -> None:
+    await db.execute(
+        update(ChatSession)
+        .where(ChatSession.id == session_id)
+        .values(title=title)
+    )
+    await db.flush()

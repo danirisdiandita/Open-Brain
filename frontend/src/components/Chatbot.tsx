@@ -37,14 +37,20 @@ export function Chatbot() {
   }, [messages])
 
   useEffect(() => {
-    if (orgId) loadSessions()
+    if (orgId) loadLastSession()
   }, [orgId])
 
   const loadSessions = async () => {
     try {
       const res = await api.get<{ sessions: Session[] }>(`/organizations/${orgId}/chat/sessions`)
       setSessions(res.data.sessions)
-    } catch { /* ignore */ }
+      return res.data.sessions
+    } catch { return [] }
+  }
+
+  const loadLastSession = async () => {
+    const list = await loadSessions()
+    if (list.length > 0) loadSession(list[0].id)
   }
 
   const startNewSession = () => {

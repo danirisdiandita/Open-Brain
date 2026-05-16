@@ -14,7 +14,7 @@ from app.schemas.chat import (
 )
 from app.services.chat import (
     create_session, list_sessions, get_session, get_messages,
-    add_message, delete_session,
+    add_message, delete_session, update_session_title,
 )
 from app.services.embedding import embed_text
 from app.services.vector_store import get_vector_store
@@ -94,6 +94,13 @@ async def chat(
 
     # Save user message
     await add_message(db, session.id, "user", body.question)
+
+    # Set title from first question if still default
+    if session.title == "New Chat":
+        title = body.question[:50]
+        if len(body.question) > 50:
+            title += "..."
+        await update_session_title(db, session.id, title)
 
     # Build conversation history for context
     past = await get_messages(db, session.id)
