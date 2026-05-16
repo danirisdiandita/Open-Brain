@@ -1,14 +1,17 @@
-import { useMemo, useCallback } from "react"
+import { useMemo, useCallback, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   ReactFlow,
   Handle,
   Position,
+  Background,
+  Panel,
   type Node,
   type Edge,
   type NodeProps,
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
+import dagre from "@dagrejs/dagre"
 import { Folder, StickyNote } from "lucide-react"
 
 import { useFolders } from "@/hooks/useFolders"
@@ -29,10 +32,10 @@ interface TreeNode {
 function FolderNode({ data }: NodeProps) {
   return (
     <div className="flex items-center gap-2 bg-[#021b33] text-slate-200 border border-[#383782] rounded-lg px-4 py-2.5 text-[13px] font-medium cursor-pointer whitespace-nowrap select-none">
-      <Handle type="target" position={Position.Left} style={{ visibility: "hidden" }} />
+      <Handle type="target" position={Position.Top} style={{ visibility: "hidden" }} />
       <Folder className="h-4 w-4 shrink-0 text-indigo-400" />
       <span>{data.label as string}</span>
-      <Handle type="source" position={Position.Right} style={{ visibility: "hidden" }} />
+      <Handle type="source" position={Position.Bottom} style={{ visibility: "hidden" }} />
     </div>
   )
 }
@@ -40,10 +43,10 @@ function FolderNode({ data }: NodeProps) {
 function NoteNode({ data }: NodeProps) {
   return (
     <div className="flex items-center gap-1.5 bg-[#1a2744] text-slate-400 border border-dashed border-slate-600 rounded-md px-3 py-1.5 text-xs cursor-pointer whitespace-nowrap select-none">
-      <Handle type="target" position={Position.Left} style={{ visibility: "hidden" }} />
+      <Handle type="target" position={Position.Top} style={{ visibility: "hidden" }} />
       <StickyNote className="h-3.5 w-3.5 shrink-0 text-slate-500" />
       <span>{data.label as string}</span>
-      <Handle type="source" position={Position.Right} style={{ visibility: "hidden" }} />
+      <Handle type="source" position={Position.Bottom} style={{ visibility: "hidden" }} />
     </div>
   )
 }
@@ -90,72 +93,49 @@ function buildTree(flat: FolderResponse[], notes: NoteResponse[]): TreeNode[] {
   return roots
 }
 
-function layoutTree(
-  tree: TreeNode[],
-  x = 0,
-  y = 0,
-  depth = 0,
-  slugPath = "",
-): { nodes: Node[]; edges: Edge[] } {
-  const nodes: Node[] = []
-  const edges: Edge[] = []
-  const dx = 220
-  const dy = 60
-
-  const total = tree.reduce((sum, t) => sum + countNodes(t), 0)
-  let currentY = y - ((total - 1) * dy) / 2
-
+function flattenTree(tree: TreeNode[], parentId: string | null, nodes: Node[], edges: Edge[]) {
   for (const node of tree) {
-    const childCount = countNodes(node)
-    const childY = currentY + ((childCount - 1) * dy) / 2
-    const nodePath = slugPath ? `${slugPath}/${node.slug}` : node.slug
-
     const isNote = node.kind === "note"
-
     nodes.push({
       id: node.id,
       type: isNote ? "note" : "folder",
-      data: {
-        label: node.name,
-        path: isNote ? undefined : nodePath,
-        noteId: node.noteId ?? null,
-        kind: node.kind,
-      },
-      position: { x, y: currentY },
+      data: { label: node.name, path: node.slug, noteId: node.noteId ?? null, kind: node.kind },
+      position: { x: 0, y: 0 },
     })
-
-    const { nodes: childNodes, edges: childEdges } = layoutTree(
-      node.children,
-      x + dx,
-      childY,
-      depth + 1,
-      nodePath,
-    )
-    nodes.push(...childNodes)
-
-    for (const child of node.children) {
-      const isChildNote = child.kind === "note"
-      edges.push({
-        id: `${node.id}->${child.id}`,
-        source: node.id,
-        target: child.id,
-        ...(isChildNote && {
-          style: { stroke: "#64748b", strokeWidth: 1.5, strokeDasharray: "4 2" },
-        }),
-      })
+    if (parentId) {
+      edges.push({ id: `${parentId}->${node.id}`, source: parentId, target: node.id })
     }
-    edges.push(...childEdges)
-
-    currentY += dy
+    if (node.children.length > 0) {
+      flattenTree(node.children, node.id, nodes, edges)
+    }
   }
-
-  return { nodes, edges }
 }
 
-function countNodes(tree: TreeNode): number {
-  let count = 1
-  for (const child of tree.children) count += countNodes(child)
-  return count
+function applyDagreLayout(rawNodes: Node[], rawEdges: Edge[], direction: "TB" | "LR" = "TB") {
+  const g = new dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}))
+  g.setGraph({ rankdir: direction, nodesep: 60, edgesep: 30, ranksep: 100 })
+
+  for (const node of rawNodes) {
+    const isNote = node.type === "note"
+    g.setNode(node.id, { width: isNote ? 140 : 180, height: isNote ? 32 : 40 })
+  }
+
+  for (const edge of rawEdges) {
+    g.setEdge(edge.source, edge.target)
+  }
+
+  dagre.layout(g)
+
+  const isHorizontal = direction === "LR"
+  return rawNodes.map((node) => {
+    const pos = g.node(node.id)
+    return {
+      ...node,
+      targetPosition: isHorizontal ? Position.Left : Position.Top,
+      sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
+      position: { x: pos.x - (node.type === "note" ? 70 : 90), y: pos.y - (node.type === "note" ? 16 : 20) },
+    }
+  })
 }
 
 export function FolderFlow() {
@@ -164,13 +144,19 @@ export function FolderFlow() {
   const { data: notes } = useNotes(selectedOrg?.id)
   const navigate = useNavigate()
 
+  const [direction, setDirection] = useState<"TB" | "LR">("LR")
+
   const nodeTypes = useMemo(() => ({ folder: FolderNode, note: NoteNode }), [])
 
-  const { nodes, edges } = useMemo(() => {
+  const layouted = useMemo(() => {
     if (!folders || folders.length === 0) return { nodes: [], edges: [] }
     const tree = buildTree(folders, notes ?? [])
-    return layoutTree(tree, 0, 0)
-  }, [folders, notes])
+    const rawNodes: Node[] = []
+    const rawEdges: Edge[] = []
+    flattenTree(tree, null, rawNodes, rawEdges)
+    const nodes = applyDagreLayout(rawNodes, rawEdges, direction)
+    return { nodes, edges: rawEdges }
+  }, [folders, notes, direction])
 
   const onNodeClick = useCallback(
     (_: unknown, node: Node) => {
@@ -184,29 +170,43 @@ export function FolderFlow() {
     [navigate, selectedOrg?.slug],
   )
 
-  if (nodes.length === 0) return null
+  if (layouted.nodes.length === 0) return null
 
   return (
     <div className="w-full h-full border rounded-lg overflow-hidden bg-muted/20">
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={layouted.nodes}
+        edges={layouted.edges}
         nodeTypes={nodeTypes}
-        defaultEdgeOptions={{
-          type: "step",
-          style: { stroke: "#818cf8", strokeWidth: 2.5 },
-        }}
+        defaultEdgeOptions={{ type: "step", style: { stroke: "#818cf8", strokeWidth: 2.5 } }}
         fitView
         fitViewOptions={{ padding: 0.3 }}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
-        panOnDrag={false}
-        zoomOnScroll={false}
-        zoomOnDoubleClick={false}
+        panOnScroll
+        zoomOnScroll
+        zoomOnDoubleClick
+        zoomOnPinch
         onNodeClick={onNodeClick}
         proOptions={{ hideAttribution: true }}
-      />
+      >
+        <Background color="#383782" gap={20} />
+        <Panel position="top-right" className="flex gap-1">
+          <button
+            className={`text-xs px-2 py-1 rounded border ${direction === "LR" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-muted"}`}
+            onClick={() => setDirection("LR")}
+          >
+            Horizontal
+          </button>
+          <button
+            className={`text-xs px-2 py-1 rounded border ${direction === "TB" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-muted"}`}
+            onClick={() => setDirection("TB")}
+          >
+            Vertical
+          </button>
+        </Panel>
+      </ReactFlow>
     </div>
   )
 }
