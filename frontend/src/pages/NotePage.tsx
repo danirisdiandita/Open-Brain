@@ -5,9 +5,9 @@ import { ArrowLeft, Loader2, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { NoteEditor } from "@/components/NoteEditor"
 import { useOrganization } from "@/contexts/OrganizationContext"
 import { useNote, useUpdateNote } from "@/hooks/useNotes"
+import { SimpleEditor } from "@/components/tiptap-templates/simple/simple-editor"
 
 export default function NotePage() {
   const { noteId } = useParams<{ noteId: string; orgSlug: string }>()
@@ -19,8 +19,6 @@ export default function NotePage() {
 
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
-
-  console.log('note', note)
 
   useEffect(() => {
     if (note) {
@@ -76,7 +74,7 @@ export default function NotePage() {
 
   return (
     <div className="min-h-screen bg-sidebar flex flex-col">
-      <div className="max-w-3xl w-full mx-auto p-6 space-y-4 flex flex-col flex-1">
+      <div className="max-w-4xl w-full mx-auto p-6 space-y-4 flex flex-col flex-1">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5 text-sidebar-foreground" />
@@ -98,11 +96,7 @@ export default function NotePage() {
         </div>
 
         <div className="bg-background rounded-lg shadow-lg flex-1 flex flex-col">
-          <NoteEditor
-            key={noteId}
-            content={note.content ?? ""}
-            onChange={setContent}
-          />
+          <SimpleEditor key={noteId} content={note.content ?? ""} onChange={setContent} />
         </div>
       </div>
     </div>
