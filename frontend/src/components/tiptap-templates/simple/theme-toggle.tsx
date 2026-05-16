@@ -16,9 +16,10 @@ export function ThemeToggle() {
   }, [])
 
   useEffect(() => {
-    const initialDarkMode =
-      !!document.querySelector('meta[name="color-scheme"][content="dark"]') ||
-      window.matchMedia("(prefers-color-scheme: dark)").matches
+    const initialDarkMode = false
+    //   !!document.querySelector('meta[name="color-scheme"][content="dark"]') ||
+    //   window.matchMedia("(prefers-color-scheme: dark)").matches
+    // console.log("initialDarkMode", initialDarkMode)
     setIsDarkMode(initialDarkMode)
   }, [])
 
