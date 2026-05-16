@@ -116,7 +116,29 @@ class Settings(BaseSettings):
     )
     openai_model: str = Field(
         default="gpt-4.1-mini",
-        description="OpenAI model name (env: OPENAI_MODEL)",
+        description="OpenAI chat model name (env: OPENAI_MODEL)",
+    )
+    openai_embedding_model: str = Field(
+        default="text-embedding-3-small",
+        description="OpenAI embedding model for RAG (env: OPENAI_EMBEDDING_MODEL)",
+    )
+
+    # ── RAG / Vector Store ───────────────────────────────
+    vector_store_provider: str = Field(
+        default="pg_vector",
+        description="Vector store provider: pg_vector | weaviate | pinecone (env: VECTOR_STORE_PROVIDER)",
+    )
+    pinecone_api_key: str = Field(
+        default="",
+        description="Pinecone API key (env: PINECONE_API_KEY)",
+    )
+    weaviate_url: str = Field(
+        default="http://localhost:8080",
+        description="Weaviate instance URL (env: WEAVIATE_URL)",
+    )
+    weaviate_api_key: str = Field(
+        default="",
+        description="Weaviate API key — leave empty for anonymous access (env: WEAVIATE_API_KEY)",
     )
 
 
