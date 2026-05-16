@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { useDropzone } from "react-dropzone"
-import { FileText, Plus, Loader2, Upload, FileUp, MoreHorizontal, Pencil, Trash2, ArrowRightLeft, Maximize2 } from "lucide-react"
+import { FileText, Plus, Loader2, Upload, FileUp, MoreHorizontal, Pencil, Trash2, ArrowRightLeft, Maximize2, Sparkles, Folder } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,11 +20,99 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { FolderFlow } from "@/components/FolderFlow"
+import {
+  ReactFlow,
+  Handle,
+  Position,
+  type Node,
+  type Edge,
+} from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
 import { useOrganization } from "@/contexts/OrganizationContext"
 import { useFolders } from "@/hooks/useFolders"
 import { useNotes, useCreateNote, useUploadNote, useDeleteNote, useUpdateNote } from "@/hooks/useNotes"
 import type { NoteResponse } from "@/api/note"
 import type { FolderResponse } from "@/api/folder"
+
+const sampleTree: { roots: MockTreeNode[] } = {
+  roots: [
+    {
+      id: "uuid-1", name: "Engineering",
+      children: [
+        {
+          id: "uuid-2", name: "Frontend",
+          children: [
+            { id: "uuid-3", name: "Components", children: [] },
+          ],
+        },
+        { id: "uuid-4", name: "Backend", children: [] },
+      ],
+    },
+    { id: "uuid-5", name: "Design", children: [] },
+  ],
+}
+
+interface MockTreeNode {
+  id: string
+  name: string
+  children: MockTreeNode[]
+}
+
+function layoutMockTree(tree: MockTreeNode[], x = 0, y = 0): { nodes: Node[]; edges: Edge[] } {
+  const nodes: Node[] = []
+  const edges: Edge[] = []
+  const dx = 180
+  const dy = 48
+  let currentY = y
+
+  for (const node of tree) {
+    nodes.push({
+      id: node.id,
+      type: "miniFolder",
+      data: { label: node.name },
+      position: { x, y: currentY },
+    })
+
+    const { nodes: childNodes, edges: childEdges } = layoutMockTree(
+      node.children,
+      x + dx,
+      currentY,
+    )
+    nodes.push(...childNodes)
+    edges.push(...childEdges)
+
+    for (const child of node.children) {
+      edges.push({
+        id: `${node.id}->${child.id}`,
+        source: node.id,
+        target: child.id,
+        type: "step",
+        style: { stroke: "#818cf8", strokeWidth: 1.5 },
+      })
+    }
+
+    currentY += dy * (countMockNodes(node))
+  }
+
+  return { nodes, edges }
+}
+
+function countMockNodes(t: MockTreeNode): number {
+  let c = 1
+  for (const ch of t.children) c += countMockNodes(ch)
+  return c
+}
+
+function MiniFolderNode({ data }: { data: { label: string } }) {
+  return (
+    <div className="flex items-center gap-1.5 bg-[#021b33] text-slate-200 border border-[#383782] rounded-lg px-3 py-1.5 text-xs font-medium cursor-default whitespace-nowrap select-none">
+      <Handle type="target" position={Position.Left} style={{ visibility: "hidden" }} />
+      <Folder className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
+      <span>{data.label}</span>
+      <Handle type="source" position={Position.Right} style={{ visibility: "hidden" }} />
+    </div>
+  )
+}
 
 function slugFromName(name: string) {
   return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
@@ -84,6 +172,17 @@ export default function DashboardPage() {
 
   const [moveNote, setMoveNote] = useState<NoteResponse | null>(null)
   const [moveFolderId, setMoveFolderId] = useState<string>("")
+
+  const [aiOpen, setAiOpen] = useState(false)
+  const [aiDescription, setAiDescription] = useState("")
+  const [aiStep, setAiStep] = useState<"prompt" | "preview" | "done">("prompt")
+
+  const aiFlow = useMemo(() => {
+    const tree = sampleTree.roots as MockTreeNode[]
+    return layoutMockTree(tree)
+  }, [])
+
+  const aiNodeTypes = useMemo(() => ({ miniFolder: MiniFolderNode }), [])
 
   const onDrop = useCallback(
     (accepted: File[]) => {
@@ -146,9 +245,15 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col flex-1 space-y-4 min-h-0">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Welcome to your OpenBrain knowledge base</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Welcome to your OpenBrain knowledge base</p>
+        </div>
+        <Button size="lg" onClick={() => { setAiOpen(true); setAiStep("prompt"); setAiDescription("") }}>
+          <Sparkles className="mr-2 h-5 w-5" />
+          Generate with AI
+        </Button>
       </div>
 
       {registered && (
@@ -439,6 +544,92 @@ export default function DashboardPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+        <DialogContent className={aiStep === "preview" ? "sm:max-w-3xl" : "sm:max-w-lg"}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5" />
+              Generate Folder Structure with AI
+            </DialogTitle>
+            <DialogDescription>
+              Describe how your organization works and AI will suggest a folder tree.
+            </DialogDescription>
+          </DialogHeader>
+
+          {aiStep === "prompt" && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="ai-description">Describe your organization</Label>
+                <textarea
+                  id="ai-description"
+                  className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
+                  placeholder="We are a SaaS startup with an engineering team (frontend, backend, devops), a product team, and a marketing team..."
+                  value={aiDescription}
+                  onChange={(e) => setAiDescription(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setAiOpen(false)}>Cancel</Button>
+                <Button onClick={() => setAiStep("preview")} disabled={!aiDescription.trim()}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generate
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {aiStep === "preview" && (
+            <div className="space-y-4">
+              <div className="rounded-lg border overflow-hidden bg-muted/20 h-[280px]">
+                <ReactFlow
+                  nodes={aiFlow.nodes}
+                  edges={aiFlow.edges}
+                  nodeTypes={aiNodeTypes}
+                  defaultEdgeOptions={{
+                    type: "step",
+                    style: { stroke: "#818cf8", strokeWidth: 1.5 },
+                  }}
+                  fitView
+                  fitViewOptions={{ padding: 0.4 }}
+                  nodesDraggable={false}
+                  nodesConnectable={false}
+                  elementsSelectable={false}
+                  panOnDrag={false}
+                  zoomOnScroll={false}
+                  zoomOnDoubleClick={false}
+                  proOptions={{ hideAttribution: true }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                This is a sample preview based on your description.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setAiStep("prompt")}>Back</Button>
+                <Button onClick={() => setAiStep("done")}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Looks Good, Create
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {aiStep === "done" && (
+            <div className="space-y-4">
+              <div className="rounded-lg border bg-muted/30 p-4 text-center">
+                <Sparkles className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  This feature is coming soon. When ready, it will automatically create the
+                  folder structure shown in the preview for your organization.
+                </p>
+              </div>
+              <div className="flex justify-end">
+                <Button variant="ghost" onClick={() => setAiOpen(false)}>Close</Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
