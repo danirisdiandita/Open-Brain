@@ -79,3 +79,10 @@ export function useUploadNote() {
     },
   })
 }
+
+export function useSuggestFolder() {
+  return useMutation({
+    mutationFn: ({ orgId, noteId }: { orgId: string; noteId: string }) =>
+      noteApi.suggestFolder(orgId, noteId),
+  })
+}

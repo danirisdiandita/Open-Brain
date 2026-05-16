@@ -10,6 +10,7 @@ import {
   Upload,
   FileUp,
   Folder,
+  Sparkles,
 } from "lucide-react"
 import { useDropzone } from "react-dropzone"
 
@@ -38,6 +39,7 @@ import {
   useUploadNote,
   useDeleteNote,
   useUpdateNote,
+  useSuggestFolder,
 } from "@/hooks/useNotes"
 import type { NoteResponse } from "@/api/note"
 import type { FolderResponse } from "@/api/folder"
@@ -82,6 +84,7 @@ export default function UncategorizedPage() {
   const uploadNote = useUploadNote()
   const deleteNote = useDeleteNote()
   const updateNote = useUpdateNote()
+  const suggestFolder = useSuggestFolder()
 
   const unassigned = useMemo(
     () => notes?.filter((n) => !n.folder_id) ?? [],
@@ -96,6 +99,9 @@ export default function UncategorizedPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<NoteResponse | null>(null)
   const [moveNote, setMoveNote] = useState<NoteResponse | null>(null)
   const [moveFolderId, setMoveFolderId] = useState("")
+  const [aiMoveNote, setAiMoveNote] = useState<NoteResponse | null>(null)
+  const [aiSuggestions, setAiSuggestions] = useState<any>(null)
+  const [aiSelectedPath, setAiSelectedPath] = useState("")
 
   const onDrop = useCallback(
     (accepted: File[]) => {
@@ -154,6 +160,22 @@ export default function UncategorizedPage() {
     })
     setMoveNote(null)
     setMoveFolderId("")
+  }
+
+  const confirmAiMove = () => {
+    if (!orgId || !aiMoveNote || !aiSelectedPath) return
+    const folder = folders?.find((f) => {
+      const path = getFolderPath(f.id, folders!)
+      return path === aiSelectedPath
+    })
+    if (!folder) return
+    updateNote.mutate({
+      orgId,
+      id: aiMoveNote.id,
+      body: { folder_id: folder.id },
+    })
+    setAiMoveNote(null)
+    setAiSuggestions(null)
   }
 
   if (isLoading) {
@@ -272,6 +294,27 @@ export default function UncategorizedPage() {
                         >
                           <Folder className="mr-2 h-4 w-4" />
                           <span>Move to Folder</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (!orgId) return
+                            setAiMoveNote(note)
+                            setAiSuggestions(null)
+                            setAiSelectedPath("")
+                            suggestFolder.mutate(
+                              { orgId, noteId: note.id },
+                              {
+                                onSuccess: (data) => {
+                                  setAiSuggestions(data)
+                                  setAiSelectedPath(data.best_path)
+                                },
+                              },
+                            )
+                          }}
+                        >
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          <span>Move by AI</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
@@ -431,6 +474,62 @@ export default function UncategorizedPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={aiMoveNote !== null} onOpenChange={() => { setAiMoveNote(null); setAiSuggestions(null) }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5" />
+              AI Folder Suggestion
+            </DialogTitle>
+            <DialogDescription>
+              Best folder for <strong>&quot;{aiMoveNote?.title}&quot;</strong>
+            </DialogDescription>
+          </DialogHeader>
+
+          {suggestFolder.isPending ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : aiSuggestions ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                {aiSuggestions.suggestions.map((s: any, i: number) => {
+                  const isBest = s.folder_path === aiSelectedPath
+                  return (
+                    <button
+                      key={i}
+                      className={`w-full text-left rounded-lg border p-3 transition-colors ${
+                        isBest ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                      }`}
+                      onClick={() => setAiSelectedPath(s.folder_path)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{s.folder_path}</span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${
+                          s.score >= 8 ? "bg-green-100 text-green-700" :
+                          s.score >= 5 ? "bg-yellow-100 text-yellow-700" :
+                          "bg-red-100 text-red-700"
+                        }`}>
+                          {s.score}/10
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{s.reason}</p>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="ghost" onClick={() => { setAiMoveNote(null); setAiSuggestions(null) }}>Cancel</Button>
+                <Button onClick={confirmAiMove} disabled={!aiSelectedPath || updateNote.isPending}>
+                  {updateNote.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                  Move to Selected
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>

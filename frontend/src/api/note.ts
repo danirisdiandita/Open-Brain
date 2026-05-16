@@ -60,4 +60,18 @@ export const noteApi = {
       headers: { "Content-Type": "multipart/form-data" },
     }).then((r) => r.data)
   },
+
+  suggestFolder: (orgId: string, noteId: string) =>
+    api.post<SuggestFolderResponse>(`/organizations/${orgId}/notes/${noteId}/suggest-folder`).then((r) => r.data),
+}
+
+export interface FolderSuggestion {
+  folder_path: string
+  reason: string
+  score: number
+}
+
+export interface SuggestFolderResponse {
+  suggestions: FolderSuggestion[]
+  best_path: string
 }

@@ -19,6 +19,8 @@ from app.services.note import (
     update_note,
 )
 from app.services.document import parse_document, DocumentParseError
+from app.services.ai import suggest_folder_for_note
+from app.services.folder import list_folders, build_folder_tree
 
 router = APIRouter(prefix="/organizations/{org_id}/notes", tags=["notes"])
 
@@ -67,6 +69,28 @@ async def upload_note(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     finally:
         os.unlink(tmp_path)
+
+
+@router.post("/{note_id}/suggest-folder")
+async def suggest_note_folder(
+    org_id: uuid.UUID,
+    note_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        note = await get_note(db, note_id, org_id, user)
+        folders = await list_folders(db, org_id, user)
+        tree = build_folder_tree(folders)
+
+        result = await suggest_folder_for_note(
+            note_title=note.title,
+            note_content=note.content,
+            folder_tree=tree,
+        )
+        return result
+    except NoteError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
 
 @router.get("/{note_id}", response_model=NoteResponse)
