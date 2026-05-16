@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useEffect } from "react"
+import { useCallback, useRef, useState, useEffect, useLayoutEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Tree, type NodeRendererProps } from "react-arborist"
 import { Folder, FolderOpen, Plus, Pencil, Trash2, GripVertical, ChevronRight, Loader2, MoreHorizontal } from "lucide-react"
@@ -102,19 +102,26 @@ export function FolderTree() {
     const update = () => {
       if (el.clientHeight > 0) setContainerHeight(el.clientHeight)
     }
-    update()
     const obs = new ResizeObserver(update)
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
 
   const treeData: TreeNode[] = flatFolders ? buildTree(flatFolders) : []
+
+  useLayoutEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    if (el.clientHeight > 0) setContainerHeight(el.clientHeight)
+  }, [treeData])
+
   const currentFolder = findNodeBySlugPath(treeData, currentPath)
 
   useEffect(() => {
     const tree = treeRef.current
-    if (!tree || !currentPath.length) {
-      tree?.closeAll()
+    if (!tree) return
+    if (!currentPath.length) {
+      requestAnimationFrame(() => tree.closeAll())
       return
     }
 
