@@ -508,6 +508,16 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Supported formats</p>
+            <div className="flex flex-wrap gap-1.5">
+              {["PDF", "DOCX", "PPTX", "HTML", "TXT", "PNG", "JPG", "JPEG"].map((fmt) => (
+                <span key={fmt} className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground font-mono">
+                  .{fmt.toLowerCase()}
+                </span>
+              ))}
+            </div>
+          </div>
           <div className="flex justify-end">
             <Button variant="ghost" size="sm" onClick={() => setUploadOpen(false)} disabled={uploadNote.isPending}>
               Cancel
