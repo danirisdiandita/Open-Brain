@@ -181,7 +181,7 @@ export default function DashboardPage() {
         ) : rows.length === 0 ? (
           <Card className="border-dashed"><CardContent className="flex flex-col items-center py-16 text-center"><FileText className="h-10 w-10 text-muted-foreground/30 mb-4" /><h3 className="text-base font-medium">Nothing here yet</h3><p className="text-sm text-muted-foreground mt-1">Create a note or generate folders to get started.</p><div className="flex gap-2 mt-4"><Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}><Plus className="mr-1.5 h-4 w-4" />Blank Note</Button><Button variant="outline" size="sm" onClick={() => setUploadOpen(true)}><Upload className="mr-1.5 h-4 w-4" />Upload File</Button></div></CardContent></Card>
         ) : viewMode === "grid" ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 overflow-y-auto flex-1">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 overflow-y-auto flex-1 auto-rows-max">
             {rows.map((row) => {
               const isFolder = row.kind === "folder"; const name = isFolder ? row.data.name : row.data.title
               const dateStr = isFolder ? row.data.created_at : row.data.updated_at
@@ -192,7 +192,16 @@ export default function DashboardPage() {
                       {isFolder ? <Folder className="h-5 w-5 shrink-0 text-indigo-400 mt-0.5" /> : <FileText className="h-5 w-5 shrink-0 text-slate-400 mt-0.5" />}
                       <div className="min-w-0"><h3 className="font-semibold text-sm truncate">{name}</h3><p className="text-[10px] text-muted-foreground/60 mt-1.5">{formatDate(dateStr)}</p></div>
                     </div>
-                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">{!isFolder && noteActions(row.data as NoteResponse)}</div>
+                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      {isFolder ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/${selectedOrg?.slug}/${row.data.slug}`) }}><Pencil className="mr-2 h-4 w-4" /><span>Open</span></DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : noteActions(row.data as NoteResponse)}
+                    </div>
                   </div>
                 </Card>
               )
