@@ -1,8 +1,18 @@
 import { useState, useMemo, useCallback } from "react"
-import { useSearchParams, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
+import {
+  FileText,
+  Plus,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Loader2,
+  Upload,
+  FileUp,
+  Folder,
+} from "lucide-react"
 import { useDropzone } from "react-dropzone"
-import { FileText, Plus, Loader2, Upload, FileUp, MoreHorizontal, Pencil, Trash2, ArrowRightLeft, Maximize2 } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,10 +29,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { FolderFlow } from "@/components/FolderFlow"
+import { Card, CardContent } from "@/components/ui/card"
 import { useOrganization } from "@/contexts/OrganizationContext"
 import { useFolders } from "@/hooks/useFolders"
-import { useNotes, useCreateNote, useUploadNote, useDeleteNote, useUpdateNote } from "@/hooks/useNotes"
+import {
+  useNotes,
+  useCreateNote,
+  useUploadNote,
+  useDeleteNote,
+  useUpdateNote,
+} from "@/hooks/useNotes"
 import type { NoteResponse } from "@/api/note"
 import type { FolderResponse } from "@/api/folder"
 
@@ -55,11 +71,9 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString([], { month: "short", day: "numeric" })
 }
 
-export default function DashboardPage() {
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
-  const registered = searchParams.get("registered") === "true"
+export default function UncategorizedPage() {
   const { selectedOrg } = useOrganization()
+  const navigate = useNavigate()
   const orgId = selectedOrg?.id
 
   const { data: notes, isLoading } = useNotes(orgId)
@@ -69,7 +83,7 @@ export default function DashboardPage() {
   const deleteNote = useDeleteNote()
   const updateNote = useUpdateNote()
 
-  const unassignedNotes = useMemo(
+  const unassigned = useMemo(
     () => notes?.filter((n) => !n.folder_id) ?? [],
     [notes],
   )
@@ -79,11 +93,9 @@ export default function DashboardPage() {
   const [createSlug, setCreateSlug] = useState("")
 
   const [uploadOpen, setUploadOpen] = useState(false)
-
   const [deleteConfirm, setDeleteConfirm] = useState<NoteResponse | null>(null)
-
   const [moveNote, setMoveNote] = useState<NoteResponse | null>(null)
-  const [moveFolderId, setMoveFolderId] = useState<string>("")
+  const [moveFolderId, setMoveFolderId] = useState("")
 
   const onDrop = useCallback(
     (accepted: File[]) => {
@@ -144,162 +156,142 @@ export default function DashboardPage() {
     setMoveFolderId("")
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col flex-1 space-y-4 min-h-0">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Welcome to your OpenBrain knowledge base</p>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Uncategorized</h1>
+          <p className="text-sm text-muted-foreground">Notes not assigned to any folder</p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm">
+              <Plus className="mr-1.5 h-4 w-4" />
+              New Note
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              <span>Blank Note</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setUploadOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              <span>Upload File</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {registered && (
-        <Card className="border-green-200 bg-green-50/50">
-          <CardContent className="pt-6">
-            <p className="text-sm text-green-700">
-              Account created successfully. Check your email to verify your address.
+      {unassigned.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center py-16 text-center">
+            <FileText className="h-10 w-10 text-muted-foreground/30 mb-4" />
+            <h3 className="text-base font-medium">No uncategorized notes</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Create a note or upload a file to get started.
             </p>
+            <div className="flex gap-2 mt-4">
+              <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                Blank Note
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setUploadOpen(true)}>
+                <Upload className="mr-1.5 h-4 w-4" />
+                Upload File
+              </Button>
+            </div>
           </CardContent>
         </Card>
+      ) : (
+        <div className="rounded-lg border">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Name</th>
+                <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3 w-24">Type</th>
+                <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3 w-36">Modified</th>
+                <th className="text-right text-xs font-medium text-muted-foreground px-4 py-3 w-12" />
+              </tr>
+            </thead>
+            <tbody>
+              {unassigned.map((note) => (
+                <tr
+                  key={note.id}
+                  className="border-b last:border-0 hover:bg-muted/30 cursor-pointer transition-colors"
+                  onClick={() => navigate(`/dashboard/${selectedOrg?.slug}/note/${note.id}`)}
+                >
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+                      <span className="text-sm font-medium truncate">{note.title}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Note</span>
+                  </td>
+                  <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                    {formatDate(note.updated_at)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate(`/dashboard/${selectedOrg?.slug}/note/${note.id}`)
+                          }}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          <span>Edit</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setMoveNote(note)
+                            setMoveFolderId("")
+                          }}
+                        >
+                          <Folder className="mr-2 h-4 w-4" />
+                          <span>Move to Folder</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteConfirm(note)
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          <span>Delete</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
-        <div className="flex flex-col min-h-0 space-y-2">
-          <div className="flex items-center justify-between shrink-0">
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight">Workspace Structure</h2>
-              <p className="text-sm text-muted-foreground">Visual overview of your knowledge base tree</p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/dashboard/${selectedOrg?.slug}/flow`)}
-            >
-              <Maximize2 className="mr-1.5 h-4 w-4" />
-              Fullscreen
-            </Button>
-          </div>
-          <FolderFlow />
-        </div>
-
-        <div className="flex flex-col min-h-0 space-y-3">
-          <div className="flex items-center justify-between shrink-0">
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight">Uncategorized</h2>
-              <p className="text-sm text-muted-foreground">Notes not assigned to any folder</p>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm">
-                  <Plus className="mr-1.5 h-4 w-4" />
-                  New Note
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setCreateOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  <span>Blank Note</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setUploadOpen(true)}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  <span>Upload File</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : unassignedNotes.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="flex flex-col items-center py-8 text-center">
-                <FileText className="h-8 w-8 text-muted-foreground/30 mb-3" />
-                <p className="text-sm text-muted-foreground">No uncategorized notes</p>
-                <Button variant="outline" size="sm" className="mt-3" onClick={() => setCreateOpen(true)}>
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  Create one
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="rounded-lg border overflow-y-auto flex-1">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2.5">Name</th>
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2.5 w-36">Modified</th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2.5 w-12" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {unassignedNotes.map((note) => (
-                    <tr
-                      key={note.id}
-                      className="border-b last:border-0 hover:bg-muted/30 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/dashboard/${selectedOrg?.slug}/note/${note.id}`)}
-                    >
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <FileText className="h-4 w-4 shrink-0 text-slate-400" />
-                          <span className="text-sm font-medium truncate">{note.title}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                        {formatDate(note.updated_at)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                navigate(`/dashboard/${selectedOrg?.slug}/note/${note.id}`)
-                              }}
-                            >
-                              <Pencil className="mr-2 h-4 w-4" />
-                              <span>Edit</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setMoveNote(note)
-                                setMoveFolderId("")
-                              }}
-                            >
-                              <ArrowRightLeft className="mr-2 h-4 w-4" />
-                              <span>Move to Folder</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setDeleteConfirm(note)
-                              }}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              <span>Delete</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md">
@@ -309,9 +301,9 @@ export default function DashboardPage() {
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); submitCreate() }} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="unassigned-title">Title</Label>
+              <Label htmlFor="uc-title">Title</Label>
               <Input
-                id="unassigned-title"
+                id="uc-title"
                 value={createTitle}
                 onChange={(e) => {
                   setCreateTitle(e.target.value)
@@ -323,9 +315,9 @@ export default function DashboardPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="unassigned-slug">Slug</Label>
+              <Label htmlFor="uc-slug">Slug</Label>
               <Input
-                id="unassigned-slug"
+                id="uc-slug"
                 value={createSlug}
                 onChange={(e) => setCreateSlug(e.target.value)}
                 placeholder="quick-note"
@@ -333,9 +325,7 @@ export default function DashboardPage() {
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setCreateOpen(false)}>
-                Cancel
-              </Button>
+              <Button type="button" variant="ghost" onClick={() => setCreateOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={!createTitle || !createSlug || createNote.isPending}>
                 {createNote.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
                 Create
@@ -349,9 +339,7 @@ export default function DashboardPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Upload Document</DialogTitle>
-            <DialogDescription>
-              Drop a file or click to browse. It will be parsed into a note.
-            </DialogDescription>
+            <DialogDescription>Drop a file or click to browse. It will be parsed into a note.</DialogDescription>
           </DialogHeader>
           <div
             {...getRootProps()}
@@ -373,17 +361,13 @@ export default function DashboardPage() {
             ) : (
               <div className="flex flex-col items-center gap-2">
                 <FileUp className="h-8 w-8 text-muted-foreground/50" />
-                <p className="text-sm font-medium">
-                  Drag & drop or <span className="text-primary underline">browse</span>
-                </p>
+                <p className="text-sm font-medium">Drag & drop or <span className="text-primary underline">browse</span></p>
                 <p className="text-xs text-muted-foreground">Max 1 file</p>
               </div>
             )}
           </div>
           <div className="flex justify-end">
-            <Button variant="ghost" size="sm" onClick={() => setUploadOpen(false)} disabled={uploadNote.isPending}>
-              Cancel
-            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setUploadOpen(false)} disabled={uploadNote.isPending}>Cancel</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -416,18 +400,16 @@ export default function DashboardPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="move-folder">Target Folder</Label>
+              <Label htmlFor="uc-move-folder">Target Folder</Label>
               <select
-                id="move-folder"
+                id="uc-move-folder"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={moveFolderId}
                 onChange={(e) => setMoveFolderId(e.target.value)}
               >
                 <option value="">Select a folder...</option>
                 {folders?.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {getFolderPath(f.id, folders)}
-                  </option>
+                  <option key={f.id} value={f.id}>{getFolderPath(f.id, folders)}</option>
                 ))}
               </select>
             </div>
