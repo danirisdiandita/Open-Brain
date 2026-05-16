@@ -21,6 +21,10 @@ from app.services.note import (
 from app.services.document import parse_document, DocumentParseError
 from app.services.ai import suggest_folder_for_note
 from app.services.folder import list_folders, build_folder_tree
+from app.services.chunking import chunk_text
+from app.services.embedding import embed_batch
+from app.services.vector_store import get_vector_store
+from app.models.chunk import Chunk
 
 router = APIRouter(prefix="/organizations/{org_id}/notes", tags=["notes"])
 
@@ -64,6 +68,7 @@ async def upload_note(
         note = await create_note(
             db, org_id, user, title, slug, content, folder_id
         )
+        await _reindex_note(db, note)
         return note
     except DocumentParseError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
@@ -117,6 +122,7 @@ async def create_org_note(
         note = await create_note(
             db, org_id, user, body.title, body.slug, body.content, uuid.UUID(body.folder_id) if body.folder_id else None
         )
+        await _reindex_note(db, note)
         return note
     except NoteError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
@@ -131,7 +137,7 @@ async def update_org_note(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        return await update_note(
+        updated = await update_note(
             db,
             note_id,
             org_id,
@@ -142,6 +148,8 @@ async def update_org_note(
             is_published=body.is_published,
             folder_id=uuid.UUID(body.folder_id) if body.folder_id else None,
         )
+        await _reindex_note(db, updated)
+        return updated
     except NoteError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
@@ -157,3 +165,34 @@ async def delete_org_note(
         await delete_note(db, note_id, org_id, user)
     except NoteError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+
+
+async def _reindex_note(db, note) -> None:
+    """Reindex a single note's chunks using the given db session."""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        store = get_vector_store()
+        await store.delete_by_note(db, note.id)
+
+        texts = chunk_text(note.content or "")
+        if not texts:
+            return
+
+        embeddings = await embed_batch(texts)
+
+        chunks: list[Chunk] = []
+        for i, (text, emb) in enumerate(zip(texts, embeddings)):
+            chunks.append(Chunk(
+                note_id=note.id,
+                organization_id=note.organization_id,
+                content=text,
+                embedding=emb,
+                chunk_index=i,
+                token_count=len(text.split()),
+            ))
+
+        await store.upsert(db, chunks)
+    except Exception as exc:
+        logger.error(f"Failed to reindex note {note.id}: {exc}")

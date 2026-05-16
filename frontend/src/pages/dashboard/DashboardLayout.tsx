@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/AppSidebar"
+import { Chatbot } from "@/components/Chatbot"
 import { useSyncOrgFromSlug, useCurrentFolderPath } from "@/hooks/useSyncOrgFromSlug"
 import { useOrganization } from "@/contexts/OrganizationContext"
 import { useFolders } from "@/hooks/useFolders"
@@ -71,6 +72,7 @@ export default function DashboardLayout() {
           <Outlet />
         </div>
       </SidebarInset>
+      <Chatbot />
     </SidebarProvider>
   )
 }

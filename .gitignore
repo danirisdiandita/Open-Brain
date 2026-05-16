@@ -3,3 +3,5 @@
 /__pycache__
 *.pyc
 /last.txt
+/pgdata
+/backend/.ruff_cache

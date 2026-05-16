@@ -36,3 +36,6 @@ class Organization(Base):
     folders: Mapped[list["Folder"]] = relationship(
         back_populates="organization", cascade="all, delete-orphan"
     )
+    chunks: Mapped[list["Chunk"]] = relationship(
+        back_populates="organization", cascade="all, delete-orphan"
+    )

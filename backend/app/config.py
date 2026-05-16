@@ -123,6 +123,16 @@ class Settings(BaseSettings):
         description="OpenAI embedding model for RAG (env: OPENAI_EMBEDDING_MODEL)",
     )
 
+    # ── RAG / Chunking ──────────────────────────────────
+    rag_chunk_size: int = Field(
+        default=512,
+        description="Max tokens per chunk for RAG ingestion (env: RAG_CHUNK_SIZE)",
+    )
+    rag_chunk_overlap: int = Field(
+        default=64,
+        description="Token overlap between adjacent chunks (env: RAG_CHUNK_OVERLAP)",
+    )
+
     # ── RAG / Vector Store ───────────────────────────────
     vector_store_provider: str = Field(
         default="pg_vector",

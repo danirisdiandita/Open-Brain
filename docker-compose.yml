@@ -1,0 +1,15 @@
+
+services:
+  pgvector_openbrain:
+    container_name: pgvector_openbrain
+    image: pgvector/pgvector:0.8.0-pg17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 62zpmOEpVYGKHGRA
+      POSTGRES_DB: postgres
+    restart: always 
+    ports:
+      - "9438:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+
