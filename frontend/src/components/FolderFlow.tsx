@@ -30,23 +30,25 @@ interface TreeNode {
 }
 
 function FolderNode({ data }: NodeProps) {
+  const isHorizontal = data.targetPos === "left"
   return (
     <div className="flex items-center gap-2 bg-[#021b33] text-slate-200 border border-[#383782] rounded-lg px-4 py-2.5 text-[13px] font-medium cursor-pointer whitespace-nowrap select-none">
-      <Handle type="target" position={Position.Top} style={{ visibility: "hidden" }} />
+      <Handle type="target" position={isHorizontal ? Position.Left : Position.Top} style={{ visibility: "hidden" }} />
       <Folder className="h-4 w-4 shrink-0 text-indigo-400" />
       <span>{data.label as string}</span>
-      <Handle type="source" position={Position.Bottom} style={{ visibility: "hidden" }} />
+      <Handle type="source" position={isHorizontal ? Position.Right : Position.Bottom} style={{ visibility: "hidden" }} />
     </div>
   )
 }
 
 function NoteNode({ data }: NodeProps) {
+  const isHorizontal = data.targetPos === "left"
   return (
     <div className="flex items-center gap-1.5 bg-[#1a2744] text-slate-400 border border-dashed border-slate-600 rounded-md px-3 py-1.5 text-xs cursor-pointer whitespace-nowrap select-none">
-      <Handle type="target" position={Position.Top} style={{ visibility: "hidden" }} />
+      <Handle type="target" position={isHorizontal ? Position.Left : Position.Top} style={{ visibility: "hidden" }} />
       <StickyNote className="h-3.5 w-3.5 shrink-0 text-slate-500" />
       <span>{data.label as string}</span>
-      <Handle type="source" position={Position.Bottom} style={{ visibility: "hidden" }} />
+      <Handle type="source" position={isHorizontal ? Position.Right : Position.Bottom} style={{ visibility: "hidden" }} />
     </div>
   )
 }
@@ -129,11 +131,20 @@ function applyDagreLayout(rawNodes: Node[], rawEdges: Edge[], direction: "TB" | 
   const isHorizontal = direction === "LR"
   return rawNodes.map((node) => {
     const pos = g.node(node.id)
+    const isNote = node.type === "note"
     return {
       ...node,
       targetPosition: isHorizontal ? Position.Left : Position.Top,
       sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
-      position: { x: pos.x - (node.type === "note" ? 70 : 90), y: pos.y - (node.type === "note" ? 16 : 20) },
+      data: {
+        ...node.data,
+        targetPos: isHorizontal ? "left" : "top",
+        sourcePos: isHorizontal ? "right" : "bottom",
+      },
+      position: {
+        x: pos.x - (isNote ? 70 : 90),
+        y: pos.y - (isNote ? 16 : 20),
+      },
     }
   })
 }

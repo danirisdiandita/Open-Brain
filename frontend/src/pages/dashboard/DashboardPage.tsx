@@ -146,33 +146,35 @@ export default function DashboardPage() {
   )
 
   return (
-    <div className="flex flex-col flex-1 space-y-4 min-h-0">
-      <div className="flex items-start justify-between">
-        <div><h1 className="text-3xl font-bold tracking-tight">Dashboard</h1><p className="text-muted-foreground mt-1">Welcome to your OpenBrain knowledge base</p></div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/${selectedOrg?.slug}/flow`)}><Maximize2 className="mr-1.5 h-4 w-4" />Workspace Structure</Button>
-          <Button size="lg" onClick={() => { setAiOpen(true); setAiStep("prompt"); setAiDescription("") }}><Sparkles className="mr-2 h-5 w-5" />Generate Folders with AI</Button>
+    <div className="flex flex-col flex-1 space-y-6 min-h-0">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Welcome to your OpenBrain knowledge base</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/${selectedOrg?.slug}/flow`)}>
+            <Maximize2 className="mr-1.5 h-4 w-4" />Workspace Structure
+          </Button>
+          <Button size="sm" onClick={() => { setAiOpen(true); setAiStep("prompt"); setAiDescription("") }}>
+            <Sparkles className="mr-1.5 h-4 w-4" />Generate Folders with AI
+          </Button>
+          <div className="flex items-center rounded-md border">
+            <Button variant={viewMode === "table" ? "secondary" : "ghost"} size="icon" className="h-8 w-8 rounded-none rounded-l-md" onClick={() => setViewModeAndPersist("table")}><LayoutList className="h-4 w-4" /></Button>
+            <Button variant={viewMode === "grid" ? "secondary" : "ghost"} size="icon" className="h-8 w-8 rounded-none rounded-r-md" onClick={() => setViewModeAndPersist("grid")}><LayoutGrid className="h-4 w-4" /></Button>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button size="sm"><Plus className="mr-1.5 h-4 w-4" />New Note</Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setCreateOpen(true)}><Plus className="mr-2 h-4 w-4" /><span>Blank Note</span></DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setUploadOpen(true)}><Upload className="mr-2 h-4 w-4" /><span>Upload File</span></DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       {registered && <Card className="border-green-200 bg-green-50/50"><CardContent className="pt-6"><p className="text-sm text-green-700">Account created successfully. Check your email to verify your address.</p></CardContent></Card>}
 
-      <div className="flex flex-col flex-1 min-h-0 space-y-3">
-        <div className="flex items-center justify-between shrink-0">
-          <div><h2 className="text-xl font-semibold tracking-tight">Root</h2><p className="text-sm text-muted-foreground">Root folders and uncategorized notes</p></div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center rounded-md border">
-              <Button variant={viewMode === "table" ? "secondary" : "ghost"} size="icon" className="h-8 w-8 rounded-none rounded-l-md" onClick={() => setViewModeAndPersist("table")}><LayoutList className="h-4 w-4" /></Button>
-              <Button variant={viewMode === "grid" ? "secondary" : "ghost"} size="icon" className="h-8 w-8 rounded-none rounded-r-md" onClick={() => setViewModeAndPersist("grid")}><LayoutGrid className="h-4 w-4" /></Button>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild><Button size="sm"><Plus className="mr-1.5 h-4 w-4" />New Note</Button></DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setCreateOpen(true)}><Plus className="mr-2 h-4 w-4" /><span>Blank Note</span></DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setUploadOpen(true)}><Upload className="mr-2 h-4 w-4" /><span>Upload File</span></DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+      <div className="flex flex-col flex-1 min-h-0">
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
