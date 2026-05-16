@@ -1,6 +1,9 @@
 import uuid
+import tempfile
+import os
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -15,6 +18,7 @@ from app.services.note import (
     list_notes,
     update_note,
 )
+from app.services.document import parse_document, DocumentParseError
 
 router = APIRouter(prefix="/organizations/{org_id}/notes", tags=["notes"])
 
@@ -32,6 +36,37 @@ async def list_org_notes(
         return await list_notes(db, org_id, folder_id, user, skip, limit)
     except NoteError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+
+
+@router.post("/upload", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
+async def upload_note(
+    org_id: uuid.UUID,
+    folder_id: uuid.UUID | None = Form(None),
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not file.filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No file provided")
+
+    suffix = Path(file.filename).suffix
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp.write(await file.read())
+        tmp_path = tmp.name
+
+    try:
+        content = await parse_document(tmp_path)
+        title = Path(file.filename).stem
+        slug = title.lower().replace(" ", "-").replace("/", "-")
+
+        note = await create_note(
+            db, org_id, user, title, slug, content, folder_id
+        )
+        return note
+    except DocumentParseError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    finally:
+        os.unlink(tmp_path)
 
 
 @router.get("/{note_id}", response_model=NoteResponse)

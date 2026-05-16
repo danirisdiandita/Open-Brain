@@ -25,3 +25,14 @@ class FolderResponse(FolderBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class FolderTreeNode(BaseModel):
+    id: uuid.UUID
+    name: str
+    slug: str
+    description: str | None
+    order_index: int
+    children: list["FolderTreeNode"] = []
+
+class FolderTreeResponse(BaseModel):
+    roots: list[FolderTreeNode]

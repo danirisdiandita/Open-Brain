@@ -43,6 +43,34 @@ async def list_folders(db: AsyncSession, org_id: uuid.UUID, user: User) -> list[
     )
     return list(result.scalars().all())
 
+def build_folder_tree(folders: list[Folder]) -> list[dict]:
+    node_map: dict[uuid.UUID, dict] = {}
+    roots: list[dict] = []
+
+    for f in folders:
+        node = {
+            "id": str(f.id),
+            "name": f.name,
+            "slug": f.slug,
+            "description": f.description,
+            "order_index": f.order_index,
+            "children": [],
+        }
+        node_map[f.id] = node
+
+    for f in folders:
+        node = node_map[f.id]
+        if f.parent_id and f.parent_id in node_map:
+            node_map[f.parent_id]["children"].append(node)
+        else:
+            roots.append(node)
+
+    return roots
+
+async def get_folder_tree(db: AsyncSession, org_id: uuid.UUID, user: User) -> dict:
+    folders = await list_folders(db, org_id, user)
+    return {"roots": build_folder_tree(folders)}
+
 async def get_folder(db: AsyncSession, folder_id: uuid.UUID, org_id: uuid.UUID, user: User) -> Folder:
     await _check_membership(db, org_id, user.id)
     result = await db.execute(

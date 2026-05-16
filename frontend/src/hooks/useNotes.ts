@@ -67,3 +67,15 @@ export function useDeleteNote() {
     },
   })
 }
+
+export function useUploadNote() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ orgId, file, folderId }: { orgId: string; file: File; folderId?: string }) =>
+      noteApi.upload(orgId, file, folderId),
+    onSuccess: (_, { orgId }) => {
+      queryClient.invalidateQueries({ queryKey: ["notes", orgId] })
+    },
+  })
+}

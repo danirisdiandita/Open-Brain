@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.database import get_db
 from app.models.user import User
-from app.schemas.folder import FolderCreate, FolderUpdate, FolderResponse
+from app.schemas.folder import FolderCreate, FolderUpdate, FolderResponse, FolderTreeResponse
 from app.services.folder import (
     FolderError,
     create_folder,
@@ -14,6 +14,7 @@ from app.services.folder import (
     get_folder,
     list_folders,
     update_folder,
+    get_folder_tree,
 )
 
 router = APIRouter(prefix="/organizations/{org_id}/folders", tags=["folders"])
@@ -26,6 +27,17 @@ async def list_org_folders(
 ):
     try:
         return await list_folders(db, org_id, user)
+    except FolderError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+
+@router.get("/tree", response_model=FolderTreeResponse)
+async def get_org_folder_tree(
+    org_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        return await get_folder_tree(db, org_id, user)
     except FolderError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
 

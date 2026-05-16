@@ -51,4 +51,13 @@ export const noteApi = {
 
   delete: (orgId: string, id: string) =>
     api.delete(`/organizations/${orgId}/notes/${id}`).then((r) => r.data),
+
+  upload: (orgId: string, file: File, folderId?: string) => {
+    const form = new FormData()
+    form.append("file", file)
+    if (folderId) form.append("folder_id", folderId)
+    return api.post<NoteResponse>(`/organizations/${orgId}/notes/upload`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then((r) => r.data)
+  },
 }
