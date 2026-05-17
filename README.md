@@ -1,5 +1,7 @@
 # Open Brain
 
+> *"Turning ADHD from a liability into a superpower — dump your thoughts, get instant answers, and let the AI keep everything organized."*
+
 <p align="center">
   <img src="./logo.png" alt="OpenBrain logo" width="200">
 </p>
