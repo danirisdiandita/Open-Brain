@@ -29,6 +29,12 @@ class Note(Base):
     content_type: Mapped[str] = mapped_column(String(16), default="tiptap")
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
     order_index: Mapped[int] = mapped_column(Integer, default=0)
+
+    attachment_key: Mapped[str | None] = mapped_column(String(512), default=None)
+    attachment_filename: Mapped[str | None] = mapped_column(String(512), default=None)
+    attachment_size: Mapped[int | None] = mapped_column(Integer, default=None)
+    attachment_content_type: Mapped[str | None] = mapped_column(String(256), default=None)
+
     created_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
@@ -42,3 +48,6 @@ class Note(Base):
 
     folder: Mapped["Folder | None"] = relationship(back_populates="notes")
     chunks: Mapped[list["Chunk"]] = relationship(back_populates="note", cascade="all, delete-orphan")
+    attachments: Mapped[list["NoteAttachment"]] = relationship(
+        back_populates="note", cascade="all, delete-orphan"
+    )

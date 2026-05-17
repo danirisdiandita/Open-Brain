@@ -51,4 +51,31 @@ export const noteApi = {
 
   delete: (orgId: string, id: string) =>
     api.delete(`/organizations/${orgId}/notes/${id}`).then((r) => r.data),
+
+  upload: (orgId: string, file: File, folderId?: string) => {
+    const form = new FormData()
+    form.append("file", file)
+    if (folderId) form.append("folder_id", folderId)
+    return api.post<NoteResponse>(`/organizations/${orgId}/notes/upload`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then((r) => r.data)
+  },
+
+  suggestFolder: (orgId: string, noteId: string, allowNew = false) =>
+    api.post<SuggestFolderResponse>(`/organizations/${orgId}/notes/${noteId}/suggest-folder`, { allow_new: allowNew }).then((r) => r.data),
+}
+
+export interface FolderSuggestion {
+  folder_path: string
+  reason: string
+  score: number
+  is_new?: boolean
+  new_folder_name?: string | null
+  new_folder_slug?: string | null
+  new_folder_description?: string | null
+}
+
+export interface SuggestFolderResponse {
+  suggestions: FolderSuggestion[]
+  best_path: string
 }

@@ -1,3 +1,7 @@
 export { default as DashboardLayout } from "./DashboardLayout"
 export { default as DashboardPage } from "./DashboardPage"
 export { default as FolderPage } from "./FolderPage"
+export { default as WorkspaceFlowPage } from "./WorkspaceFlowPage"
+export { default as UncategorizedPage } from "./UncategorizedPage"
+export { default as TeamMembersPage } from "./TeamMembersPage"
+export { default as SettingsPage } from "./SettingsPage"

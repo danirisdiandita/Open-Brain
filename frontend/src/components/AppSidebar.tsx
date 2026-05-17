@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { Brain, Home, Search, Settings, LogOut, Building2, ChevronsUpDown } from "lucide-react"
+import { Brain, Home, Users, Settings, LogOut, Building2, ChevronsUpDown } from "lucide-react"
 
 import { useLogout } from "@/hooks"
 import { useOrganization } from "@/contexts/OrganizationContext"
@@ -32,7 +32,7 @@ export function AppSidebar() {
 
   const items = useMemo(() => [
     { title: "Dashboard", url: orgPrefix, icon: Home },
-    { title: "Search", url: `${orgPrefix}/search`, icon: Search },
+    { title: "Team Members", url: `${orgPrefix}/team-members`, icon: Users },
     { title: "Settings", url: `${orgPrefix}/settings`, icon: Settings },
   ], [orgPrefix])
 
@@ -85,8 +85,8 @@ export function AppSidebar() {
 
         <SidebarSeparator />
 
-        <SidebarContent>
-          <SidebarGroup>
+        <SidebarContent className="!overflow-hidden">
+          <SidebarGroup className="shrink-0">
             <SidebarGroupLabel>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>

@@ -24,6 +24,7 @@ class UserOrganization(Base):
         UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
     )
     role: Mapped[str] = mapped_column(String(16), default="viewer", nullable=False)
+    access_scope: Mapped[str] = mapped_column(String(16), default="all", nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

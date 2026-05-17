@@ -25,6 +25,29 @@ export interface OrgResponse {
   created_at: string
 }
 
+export interface AIConfigField {
+  value: string | number | null
+  is_default: boolean
+}
+
+export interface AIConfigResponse {
+  folder_suggestion_system: AIConfigField
+  folder_tree_system: AIConfigField
+  chat_system: AIConfigField
+  rag_system: AIConfigField
+  ai_model: AIConfigField
+  temperature: AIConfigField
+}
+
+export interface AIConfigUpdate {
+  folder_suggestion_system?: string | null
+  folder_tree_system?: string | null
+  chat_system?: string | null
+  rag_system?: string | null
+  ai_model?: string | null
+  temperature?: number | null
+}
+
 export const orgApi = {
   list: () => api.get<OrgResponse[]>("/organizations").then((r) => r.data),
 
@@ -37,4 +60,10 @@ export const orgApi = {
     api.patch<OrgResponse>(`/organizations/${id}`, body).then((r) => r.data),
 
   delete: (id: string) => api.delete(`/organizations/${id}`).then((r) => r.data),
+
+  getAIConfig: (orgId: string) =>
+    api.get<AIConfigResponse>(`/organizations/${orgId}/ai-config`).then((r) => r.data),
+
+  updateAIConfig: (orgId: string, body: AIConfigUpdate) =>
+    api.patch<AIConfigResponse>(`/organizations/${orgId}/ai-config`, body).then((r) => r.data),
 }

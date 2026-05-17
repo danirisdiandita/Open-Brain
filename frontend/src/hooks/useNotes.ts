@@ -6,7 +6,7 @@ const PAGE_SIZE = 20
 export function useNotes(orgId?: string, folderId?: string) {
   return useQuery({
     queryKey: ["notes", orgId, folderId],
-    queryFn: () => noteApi.list(orgId!, folderId),
+    queryFn: () => noteApi.list(orgId!, folderId, 0, 1000),
     enabled: !!orgId,
   })
 }
@@ -65,5 +65,24 @@ export function useDeleteNote() {
     onSuccess: (_, { orgId }) => {
       queryClient.invalidateQueries({ queryKey: ["notes", orgId] })
     },
+  })
+}
+
+export function useUploadNote() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ orgId, file, folderId }: { orgId: string; file: File; folderId?: string }) =>
+      noteApi.upload(orgId, file, folderId),
+    onSuccess: (_, { orgId }) => {
+      queryClient.invalidateQueries({ queryKey: ["notes", orgId] })
+    },
+  })
+}
+
+export function useSuggestFolder() {
+  return useMutation({
+    mutationFn: ({ orgId, noteId, allowNew }: { orgId: string; noteId: string; allowNew?: boolean }) =>
+      noteApi.suggestFolder(orgId, noteId, allowNew),
   })
 }

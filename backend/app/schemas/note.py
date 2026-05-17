@@ -19,6 +19,10 @@ class NoteUpdate(BaseModel):
     folder_id: str | None = None
 
 
+class SuggestFolderRequest(BaseModel):
+    allow_new: bool = False
+
+
 class NoteResponse(BaseModel):
     id: UUID
     organization_id: UUID
@@ -29,6 +33,10 @@ class NoteResponse(BaseModel):
     content_type: str
     is_published: bool
     order_index: int
+    attachment_key: str | None = None
+    attachment_filename: str | None = None
+    attachment_size: int | None = None
+    attachment_content_type: str | None = None
     created_by: UUID
     created_at: datetime | str
     updated_at: datetime | str
@@ -36,5 +44,7 @@ class NoteResponse(BaseModel):
     model_config = {"from_attributes": True}
 
     @field_serializer("id", "organization_id", "folder_id", "created_by")
-    def serialize_uuid(self, v: UUID, _info) -> str:
+    def serialize_uuid(self, v: UUID | None, _info) -> str | None:
+        if v is None:
+            return None
         return str(v)

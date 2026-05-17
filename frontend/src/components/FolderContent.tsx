@@ -1,5 +1,6 @@
-import { useState, useMemo, useRef, useEffect } from "react"
+import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
+import { useDropzone } from "react-dropzone"
 import {
   Folder,
   FileText,
@@ -10,6 +11,8 @@ import {
   Loader2,
   LayoutList,
   LayoutGrid,
+  Upload,
+  FileUp,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -31,7 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useOrganization } from "@/contexts/OrganizationContext"
 import { useFolders, useDeleteFolder } from "@/hooks/useFolders"
-import { useInfiniteNotes, useCreateNote, useDeleteNote } from "@/hooks/useNotes"
+import { useInfiniteNotes, useCreateNote, useDeleteNote, useUploadNote } from "@/hooks/useNotes"
 import { useCurrentFolderPath } from "@/hooks/useSyncOrgFromSlug"
 import { FolderModal } from "./FolderModal"
 import type { FolderResponse } from "@/api/folder"
@@ -87,6 +90,36 @@ export function FolderContent({ folderId }: FolderContentProps) {
   const createNote = useCreateNote()
   const deleteNote = useDeleteNote()
   const deleteFolder = useDeleteFolder()
+  const uploadNote = useUploadNote()
+
+  const [uploadOpen, setUploadOpen] = useState(false)
+
+  const onDrop = useCallback(
+    (accepted: File[]) => {
+      const file = accepted[0]
+      if (!file || !orgId) return
+      uploadNote.mutate(
+        { orgId, file, folderId },
+        { onSuccess: () => setUploadOpen(false) },
+      )
+    },
+    [orgId, folderId, uploadNote],
+  )
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "application/pdf": [".pdf"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+      "text/html": [".html", ".htm"],
+      "text/plain": [".txt"],
+      "image/png": [".png"],
+      "image/jpeg": [".jpg", ".jpeg"],
+    },
+    maxFiles: 1,
+    multiple: false,
+  })
 
   const allNotes = useMemo(
     () => notesData?.pages.flat() ?? [],
@@ -186,6 +219,10 @@ export function FolderContent({ folderId }: FolderContentProps) {
   const handleCreateFolder = () => {
     setEditingFolder(null)
     setFolderModalOpen(true)
+  }
+
+  const handleUploadClick = () => {
+    setUploadOpen(true)
   }
 
   if (!orgId) return null
@@ -450,19 +487,31 @@ export function FolderContent({ folderId }: FolderContentProps) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm">
-                <Plus className="mr-1.5 h-4 w-4" />
+              <Button size="sm" disabled={uploadNote.isPending}>
+                {uploadNote.isPending ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="mr-1.5 h-4 w-4" />
+                )}
                 New
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleCreateFolder}>
+              <DropdownMenuItem onClick={handleCreateFolder} disabled={uploadNote.isPending}>
                 <Folder className="mr-2 h-4 w-4" />
                 <span>New Folder</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setCreateNoteOpen(true)}>
-                <FileText className="mr-2 h-4 w-4" />
-                <span>New Note</span>
+              <DropdownMenuItem onClick={() => setCreateNoteOpen(true)} disabled={uploadNote.isPending}>
+                <Plus className="mr-2 h-4 w-4" />
+                <span>Blank Note</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleUploadClick} disabled={uploadNote.isPending}>
+                {uploadNote.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="mr-2 h-4 w-4" />
+                )}
+                <span>{uploadNote.isPending ? "Uploading..." : "Upload File"}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -552,6 +601,83 @@ export function FolderContent({ folderId }: FolderContentProps) {
                 <Loader2 className="mr-2 h-3 w-3 animate-spin" />
               )}
               Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload Document</DialogTitle>
+            <DialogDescription>
+              Drop a file or click to browse. Docling will parse it into a note.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div
+            {...getRootProps()}
+            className={`border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors ${
+              isDragActive
+                ? "border-primary bg-primary/5"
+                : "border-muted-foreground/25 hover:border-muted-foreground/50"
+            }`}
+          >
+            <input {...getInputProps()} />
+            {uploadNote.isPending ? (
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Uploading and parsing...</p>
+              </div>
+            ) : isDragActive ? (
+              <div className="flex flex-col items-center gap-2">
+                <FileUp className="h-8 w-8 text-primary" />
+                <p className="text-sm font-medium">Drop your file here</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <FileUp className="h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm font-medium">
+                  Drag & drop or <span className="text-primary underline">browse</span>
+                </p>
+                <p className="text-xs text-muted-foreground">Max 1 file</p>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">
+              Supported formats
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                "PDF",
+                "DOCX",
+                "PPTX",
+                "HTML",
+                "TXT",
+                "PNG",
+                "JPG",
+                "JPEG",
+              ].map((fmt) => (
+                <span
+                  key={fmt}
+                  className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground font-mono"
+                >
+                  .{fmt.toLowerCase()}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setUploadOpen(false)}
+              disabled={uploadNote.isPending}
+            >
+              Cancel
             </Button>
           </div>
         </DialogContent>
