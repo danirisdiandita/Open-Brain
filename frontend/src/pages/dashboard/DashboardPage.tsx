@@ -193,7 +193,7 @@ export default function DashboardPage() {
         {isLoading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : rows.length === 0 ? (
-          <Card className="border-dashed"><CardContent className="flex flex-col items-center py-16 text-center"><FileText className="h-10 w-10 text-muted-foreground/30 mb-4" /><h3 className="text-base font-medium">Nothing here yet</h3><p className="text-sm text-muted-foreground mt-1">Create a note or generate folders to get started.</p><div className="flex gap-2 mt-4"><Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}><Plus className="mr-1.5 h-4 w-4" />Blank Note</Button><Button variant="outline" size="sm" onClick={() => setUploadOpen(true)}><Upload className="mr-1.5 h-4 w-4" />Upload File</Button></div></CardContent></Card>
+          <Card className="border-dashed rounded-2xl"><CardContent className="flex flex-col items-center py-16 text-center"><FileText className="h-10 w-10 text-muted-foreground/30 mb-4" /><h3 className="text-base font-medium">Nothing here yet</h3><p className="text-sm text-muted-foreground mt-1">Create a note or generate folders to get started.</p><div className="flex gap-2 mt-4"><Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}><Plus className="mr-1.5 h-4 w-4" />Blank Note</Button><Button variant="outline" size="sm" onClick={() => setUploadOpen(true)}><Upload className="mr-1.5 h-4 w-4" />Upload File</Button></div></CardContent></Card>
         ) : viewMode === "grid" ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 overflow-y-auto flex-1 auto-rows-max">
             {rows.map((row) => {
@@ -222,7 +222,7 @@ export default function DashboardPage() {
             })}
           </div>
         ) : (
-          <div className="rounded-lg border overflow-y-auto flex-1">
+          <div className="rounded-2xl border overflow-y-auto flex-1">
             <table className="w-full">
               <thead><tr className="border-b bg-muted/50"><th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Name</th><th className="text-left text-xs font-medium text-muted-foreground px-4 py-3 w-24">Type</th><th className="text-left text-xs font-medium text-muted-foreground px-4 py-3 w-36">Modified</th><th className="text-right text-xs font-medium text-muted-foreground px-4 py-3 w-12" /></tr></thead>
               <tbody>
