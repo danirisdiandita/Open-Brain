@@ -13,6 +13,10 @@ class FolderSuggestion(BaseModel):
     folder_path: str = Field(description="Full path to the folder, e.g. 'Engineering > Backend > API'")
     reason: str = Field(description="Brief explanation why this folder is a good fit")
     score: int = Field(description="Relevance score 1-10, 10 being best match")
+    is_new: bool = Field(default=False, description="True if this is a suggested new folder to create")
+    new_folder_name: str | None = Field(default=None, description="Suggested name for the new folder")
+    new_folder_slug: str | None = Field(default=None, description="Suggested slug for the new folder")
+    new_folder_description: str | None = Field(default=None, description="Optional description for the new folder")
 
 
 class SuggestFolderOutput(BaseModel):
@@ -25,6 +29,7 @@ async def suggest_folder_for_note(
     note_content: str | None,
     folder_tree: list[dict],
     org_config=None,
+    allow_new: bool = False,
 ) -> SuggestFolderOutput:
     settings = get_settings()
     config = get_effective_config(org_config)
@@ -34,12 +39,20 @@ async def suggest_folder_for_note(
 
     system = get_prompt("folder_suggestion_system", org_config)
 
+    new_folder_rule = ""
+    if allow_new:
+        new_folder_rule = """
+- If no existing folder is a perfect fit (score < 7), you MAY suggest 1 new folder to create.
+- For a new folder suggestion, set is_new=true, provide new_folder_name, new_folder_slug (lowercase, hyphenated), and optionally new_folder_description.
+- The folder_path for a new suggestion should show where it would go, e.g. "Engineering > NEW: API Docs".
+- At most 1 suggestion should be a new folder."""
+
     human = f"""Note title: {note_title}
 Note content preview: {content_preview}
 
 Folder tree:
 {tree_str}
-
+{new_folder_rule}
 Suggest the best folders for this note. Return the best_path as your single top recommendation."""
 
     llm = ChatOpenAI(

@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useOrganization } from "@/contexts/OrganizationContext"
-import { useFolders, useGenerateFolders, useApplyGeneratedFolders } from "@/hooks/useFolders"
+import { useFolders, useGenerateFolders, useApplyGeneratedFolders, useCreateFolder } from "@/hooks/useFolders"
 import { useNotes, useCreateNote, useUploadNote, useDeleteNote, useUpdateNote, useSuggestFolder } from "@/hooks/useNotes"
 import { ReactFlow, Handle, Position, type Node, type Edge } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
@@ -91,7 +91,7 @@ export default function DashboardPage() {
   const createNote = useCreateNote(); const uploadNote = useUploadNote()
   const deleteNote = useDeleteNote(); const updateNote = useUpdateNote()
   const generateFolders = useGenerateFolders(); const applyFolders = useApplyGeneratedFolders()
-  const suggestFolder = useSuggestFolder()
+  const createFolder = useCreateFolder(); const suggestFolder = useSuggestFolder()
 
   const rootFolders = useMemo(() => folders?.filter((f) => !f.parent_id) ?? [], [folders])
   const unassignedNotes = useMemo(() => notes?.filter((n) => !n.folder_id) ?? [], [notes])
@@ -107,6 +107,7 @@ export default function DashboardPage() {
   const [moveNote, setMoveNote] = useState<NoteResponse | null>(null); const [moveFolderId, setMoveFolderId] = useState("")
   const [aiMoveNote, setAiMoveNote] = useState<NoteResponse | null>(null)
   const [aiSuggestions, setAiSuggestions] = useState<any>(null); const [aiSelectedPath, setAiSelectedPath] = useState("")
+  const [aiAllowNew, setAiAllowNew] = useState(false); const [aiCreateNew, setAiCreateNew] = useState<any>(null)
   const [aiOpen, setAiOpen] = useState(false); const [aiDescription, setAiDescription] = useState("")
   const [aiStep, setAiStep] = useState<"prompt" | "preview" | "done">("prompt")
   const [aiResult, setAiResult] = useState<{ roots: FolderTreeNode[] } | null>(null)
@@ -131,7 +132,20 @@ export default function DashboardPage() {
   const submitCreate = () => { if (!orgId || !createTitle || !createSlug) return; createNote.mutate({ orgId, body: { title: createTitle, slug: createSlug } }, { onSuccess: (note) => { setCreateOpen(false); setCreateTitle(""); setCreateSlug(""); navigate(`/dashboard/${selectedOrg?.slug}/note/${note.id}`) } }) }
   const confirmDelete = () => { if (!orgId || !deleteConfirm) return; deleteNote.mutate({ orgId, id: deleteConfirm.id }); setDeleteConfirm(null) }
   const confirmMove = () => { if (!orgId || !moveNote || !moveFolderId) return; updateNote.mutate({ orgId, id: moveNote.id, body: { folder_id: moveFolderId } }); setMoveNote(null); setMoveFolderId("") }
-  const confirmAiMove = () => { if (!orgId || !aiMoveNote || !aiSelectedPath) return; const f = folders?.find((x) => getFolderPath(x.id, folders!) === aiSelectedPath); if (!f) return; updateNote.mutate({ orgId, id: aiMoveNote.id, body: { folder_id: f.id } }); setAiMoveNote(null); setAiSuggestions(null) }
+  const confirmAiMove = () => {
+    if (!orgId || !aiMoveNote || !aiSelectedPath) return
+    if (aiCreateNew) {
+      createFolder.mutate(
+        { orgId, body: { name: aiCreateNew.new_folder_name, slug: aiCreateNew.new_folder_slug, description: aiCreateNew.new_folder_description, parent_id: aiCreateNew.parent_folder_id } },
+        { onSuccess: (folder) => { updateNote.mutate({ orgId, id: aiMoveNote.id, body: { folder_id: (folder as any).id } }); setAiMoveNote(null); setAiSuggestions(null); setAiCreateNew(null); setAiAllowNew(false) } },
+      )
+      return
+    }
+    const f = folders?.find((x) => getFolderPath(x.id, folders!) === aiSelectedPath)
+    if (!f) return
+    updateNote.mutate({ orgId, id: aiMoveNote.id, body: { folder_id: f.id } })
+    setAiMoveNote(null); setAiSuggestions(null); setAiAllowNew(false); setAiCreateNew(null)
+  }
 
   const noteActions = (note: NoteResponse) => (
     <DropdownMenu>
@@ -139,7 +153,7 @@ export default function DashboardPage() {
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/${selectedOrg?.slug}/note/${note.id}`) }}><Pencil className="mr-2 h-4 w-4" /><span>Edit</span></DropdownMenuItem>
         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setMoveNote(note); setMoveFolderId("") }}><ArrowRightLeft className="mr-2 h-4 w-4" /><span>Move to Folder</span></DropdownMenuItem>
-        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); if (!orgId) return; setAiMoveNote(note); setAiSuggestions(null); setAiSelectedPath(""); suggestFolder.mutate({ orgId, noteId: note.id }, { onSuccess: (data) => { setAiSuggestions(data); setAiSelectedPath(data.best_path) } }) }}><Sparkles className="mr-2 h-4 w-4" /><span>Move by AI</span></DropdownMenuItem>
+        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); if (!orgId) return; setAiMoveNote(note); setAiSuggestions(null); setAiSelectedPath(""); setAiAllowNew(false); setAiCreateNew(null) }}><Sparkles className="mr-2 h-4 w-4" /><span>Move by AI</span></DropdownMenuItem>
         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteConfirm(note) }}><Trash2 className="mr-2 h-4 w-4" /><span>Delete</span></DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -243,7 +257,59 @@ export default function DashboardPage() {
       <Dialog open={moveNote !== null} onOpenChange={() => setMoveNote(null)}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Move to Folder</DialogTitle><DialogDescription>Move <strong>&quot;{moveNote?.title}&quot;</strong> into a workspace folder.</DialogDescription></DialogHeader><div className="space-y-4"><div className="space-y-2"><Label htmlFor="dt-move">Target Folder</Label><select id="dt-move" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={moveFolderId} onChange={(e) => setMoveFolderId(e.target.value)}><option value="">Select a folder...</option>{folders?.map((f) => (<option key={f.id} value={f.id}>{getFolderPath(f.id, folders)}</option>))}</select></div><div className="flex justify-end gap-2 pt-2"><Button variant="ghost" onClick={() => setMoveNote(null)}>Cancel</Button><Button onClick={confirmMove} disabled={!moveFolderId || updateNote.isPending}>{updateNote.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}Move</Button></div></div></DialogContent></Dialog>
 
       {/* ── AI Move Dialog ── */}
-      <Dialog open={aiMoveNote !== null} onOpenChange={() => { setAiMoveNote(null); setAiSuggestions(null) }}><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5" />AI Folder Suggestion</DialogTitle><DialogDescription>Best folder for <strong>&quot;{aiMoveNote?.title}&quot;</strong></DialogDescription></DialogHeader>{suggestFolder.isPending ? (<div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>) : aiSuggestions ? (<div className="space-y-4"><div className="space-y-2">{aiSuggestions.suggestions.map((s: any, i: number) => (<button key={i} className={`w-full text-left rounded-lg border p-3 transition-colors ${s.folder_path === aiSelectedPath ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`} onClick={() => setAiSelectedPath(s.folder_path)}><div className="flex items-center justify-between"><span className="text-sm font-medium">{s.folder_path}</span><span className={`text-xs px-1.5 py-0.5 rounded font-mono ${s.score>=8?"bg-green-100 text-green-700":s.score>=5?"bg-yellow-100 text-yellow-700":"bg-red-100 text-red-700"}`}>{s.score}/10</span></div><p className="text-xs text-muted-foreground mt-1">{s.reason}</p></button>))}</div><div className="flex justify-end gap-2 pt-2"><Button variant="ghost" onClick={() => { setAiMoveNote(null); setAiSuggestions(null) }}>Cancel</Button><Button onClick={confirmAiMove} disabled={!aiSelectedPath || updateNote.isPending}>{updateNote.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}Move to Selected</Button></div></div>) : null}</DialogContent></Dialog>
+      <Dialog open={aiMoveNote !== null} onOpenChange={() => { setAiMoveNote(null); setAiSuggestions(null); setAiAllowNew(false); setAiCreateNew(null) }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5" />AI Folder Suggestion</DialogTitle><DialogDescription>Best folder for <strong>&quot;{aiMoveNote?.title}&quot;</strong></DialogDescription></DialogHeader>
+          {suggestFolder.isPending ? (<div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>)
+          : aiSuggestions ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="ai-allow-new" checked={aiAllowNew} onChange={(e) => setAiAllowNew(e.target.checked)} className="rounded" />
+                <label htmlFor="ai-allow-new" className="text-xs text-muted-foreground cursor-pointer">Allow AI to suggest creating a new folder if no existing one fits</label>
+              </div>
+              <div className="space-y-2">
+                {aiSuggestions.suggestions.map((s: any, i: number) => {
+                  const isNew = s.is_new
+                  const isSelected = s.folder_path === aiSelectedPath
+                  return (
+                    <button key={i} className={`w-full text-left rounded-lg border p-3 transition-colors ${isSelected ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}
+                      onClick={() => { setAiSelectedPath(s.folder_path); setAiCreateNew(isNew ? s : null) }}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-medium truncate">{s.folder_path}</span>
+                          {isNew && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium shrink-0">New</span>}
+                        </div>
+                        <span className={`text-xs px-1.5 py-0.5 rounded font-mono ml-2 shrink-0 ${s.score>=8?"bg-green-100 text-green-700":s.score>=5?"bg-yellow-100 text-yellow-700":"bg-red-100 text-red-700"}`}>{s.score}/10</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{s.reason}</p>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="ghost" onClick={() => { setAiMoveNote(null); setAiSuggestions(null); setAiAllowNew(false); setAiCreateNew(null) }}>Cancel</Button>
+                <Button onClick={confirmAiMove} disabled={!aiSelectedPath || updateNote.isPending || createFolder.isPending}>
+                  {(updateNote.isPending || createFolder.isPending) && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                  {aiCreateNew ? "Create & Move" : "Move to Selected"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="ai-allow-new" checked={aiAllowNew} onChange={(e) => setAiAllowNew(e.target.checked)} className="rounded" />
+                <label htmlFor="ai-allow-new" className="text-xs text-muted-foreground cursor-pointer">Allow AI to suggest creating a new folder if no existing one fits</label>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="ghost" onClick={() => { setAiMoveNote(null); setAiSuggestions(null); setAiAllowNew(false); setAiCreateNew(null) }}>Cancel</Button>
+                <Button onClick={() => { if (!orgId || !aiMoveNote) return; suggestFolder.mutate({ orgId, noteId: aiMoveNote.id, allowNew: aiAllowNew }, { onSuccess: (data) => { setAiSuggestions(data); setAiSelectedPath(data.best_path) } }) }}>
+                  <Sparkles className="mr-2 h-4 w-4" />Find Folders
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── AI Generate Dialog ── */}
       <Dialog open={aiOpen} onOpenChange={setAiOpen}><DialogContent className={aiStep === "preview" ? "sm:max-w-5xl" : "sm:max-w-lg"}><DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5" />Generate Folders with AI</DialogTitle><DialogDescription>Describe how your organization works and AI will suggest a folder tree.</DialogDescription></DialogHeader>

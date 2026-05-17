@@ -133,6 +133,36 @@ class Settings(BaseSettings):
         description="Token overlap between adjacent chunks (env: RAG_CHUNK_OVERLAP)",
     )
 
+    # ── S3 / Object Storage ─────────────────────────────
+    s3_endpoint_url: str = Field(
+        default="",
+        description="S3-compatible endpoint URL — leave empty for AWS S3 (env: S3_ENDPOINT_URL)",
+    )
+    s3_region: str = Field(
+        default="us-east-1",
+        description="S3 region (env: S3_REGION)",
+    )
+    s3_access_key: str = Field(
+        default="",
+        description="S3 access key ID (env: S3_ACCESS_KEY)",
+    )
+    s3_secret_key: str = Field(
+        default="",
+        description="S3 secret access key (env: S3_SECRET_KEY)",
+    )
+    s3_bucket: str = Field(
+        default="openbrain",
+        description="S3 bucket name for file uploads (env: S3_BUCKET)",
+    )
+    s3_use_path_style: bool = Field(
+        default=False,
+        description="Use path-style addressing (required for MinIO / LocalStack) (env: S3_USE_PATH_STYLE)",
+    )
+    s3_public_url: str = Field(
+        default="",
+        description="Public base URL for S3 objects — leave empty for signed URLs (env: S3_PUBLIC_URL)",
+    )
+
     # ── RAG / Vector Store ───────────────────────────────
     vector_store_provider: str = Field(
         default="pg_vector",
@@ -149,6 +179,24 @@ class Settings(BaseSettings):
     weaviate_api_key: str = Field(
         default="",
         description="Weaviate API key — leave empty for anonymous access (env: WEAVIATE_API_KEY)",
+    )
+
+    # ── S3 / Object Storage ──────────────────────────────
+    s3_endpoint_url: str = Field(
+        default="http://localhost:9002",
+        description="S3-compatible endpoint URL, e.g. MinIO (env: S3_ENDPOINT_URL)",
+    )
+    s3_access_key: str = Field(
+        default="minioadmin",
+        description="S3 access key (env: S3_ACCESS_KEY)",
+    )
+    s3_secret_key: str = Field(
+        default="minioadmin",
+        description="S3 secret key (env: S3_SECRET_KEY)",
+    )
+    s3_region: str = Field(
+        default="us-east-1",
+        description="S3 region (env: S3_REGION)",
     )
 
 

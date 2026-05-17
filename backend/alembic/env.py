@@ -20,6 +20,7 @@ from app.models.chunk import Chunk  # noqa: F401
 from app.models.chat import ChatSession, ChatMessage  # noqa: F401
 from app.models.invitation import OrganizationInvitation  # noqa: F401
 from app.models.access import FolderMemberAccess, NoteMemberAccess  # noqa: F401
+from app.models.attachment import NoteAttachment  # noqa: F401
 from app.models.organization_ai_config import OrganizationAIConfig  # noqa: F401
 
 settings = get_settings()

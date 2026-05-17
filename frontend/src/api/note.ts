@@ -61,14 +61,18 @@ export const noteApi = {
     }).then((r) => r.data)
   },
 
-  suggestFolder: (orgId: string, noteId: string) =>
-    api.post<SuggestFolderResponse>(`/organizations/${orgId}/notes/${noteId}/suggest-folder`).then((r) => r.data),
+  suggestFolder: (orgId: string, noteId: string, allowNew = false) =>
+    api.post<SuggestFolderResponse>(`/organizations/${orgId}/notes/${noteId}/suggest-folder`, { allow_new: allowNew }).then((r) => r.data),
 }
 
 export interface FolderSuggestion {
   folder_path: string
   reason: string
   score: number
+  is_new?: boolean
+  new_folder_name?: string | null
+  new_folder_slug?: string | null
+  new_folder_description?: string | null
 }
 
 export interface SuggestFolderResponse {
