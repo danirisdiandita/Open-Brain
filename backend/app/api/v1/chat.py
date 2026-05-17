@@ -27,6 +27,7 @@ from app.services.chat import (
 from app.services.embedding import embed_text
 from app.services.prompts import get_org_ai_config, get_prompt
 from app.services.vector_store import get_vector_store
+from app.services.agent import run_agent
 
 router = APIRouter(prefix="/organizations/{org_id}/chat", tags=["chat"])
 
@@ -122,7 +123,12 @@ async def chat(
     # RAG search
     embedding = await embed_text(body.question)
     store = get_vector_store()
-    rows = await store.search(db, embedding, org_id, top_k=body.top_k)
+    settings = get_settings()
+
+    rows = await store.search(
+        db, embedding, org_id, top_k=body.top_k,
+        query_text=body.question if settings.rag_hybrid_enabled else None,
+    )
 
     context_parts: list[str] = []
     sources: list[ChatSourceSchema] = []
@@ -135,35 +141,43 @@ async def chat(
             heading=r.heading_path,
         ))
 
-    # Load org AI config
-    org_config = await get_org_ai_config(db, org_id)
+    # Try agent if enabled
+    answer: str | None = None
+    if settings.rag_agent_enabled and context_parts:
+        agent_result = await run_agent(
+            db, body.question, org_id,
+            history=history if history.strip() else "",
+        )
+        if agent_result:
+            answer = agent_result["answer"]
 
-    history_section = f"Conversation history:\n{history}\n\n" if history else ""
+    if answer is None:
+        # Load org AI config
+        org_config = await get_org_ai_config(db, org_id)
 
-    system = get_prompt("chat_system", org_config,
-        history_section=history_section,
-        context="\n".join(context_parts),
-    )
+        history_section = f"Conversation history:\n{history}\n\n" if history else ""
 
-    from langchain_core.messages import HumanMessage, SystemMessage
-    from langchain_openai import ChatOpenAI
+        system = get_prompt("chat_system", org_config,
+            history_section=history_section,
+            context="\n".join(context_parts),
+        )
 
-    from app.config import get_settings
-    from app.services.prompts import get_effective_config
+        from langchain_core.messages import HumanMessage, SystemMessage
+        from langchain_openai import ChatOpenAI
+        from app.services.prompts import get_effective_config
 
-    settings = get_settings()
-    config = get_effective_config(org_config)
-    llm = ChatOpenAI(
-        model=config["ai_model"],
-        api_key=settings.openai_api_key,
-        temperature=config["temperature"],
-    )
+        config = get_effective_config(org_config)
+        llm = ChatOpenAI(
+            model=config["ai_model"],
+            api_key=settings.openai_api_key,
+            temperature=config["temperature"],
+        )
 
-    response = await llm.ainvoke([
-        SystemMessage(content=system),
-        HumanMessage(content=body.question),
-    ])
-    answer = str(response.content) if response.content else "I couldn't generate an answer."
+        response = await llm.ainvoke([
+            SystemMessage(content=system),
+            HumanMessage(content=body.question),
+        ])
+        answer = str(response.content) if response.content else "I couldn't generate an answer."
 
     # Save assistant message
     await add_message(

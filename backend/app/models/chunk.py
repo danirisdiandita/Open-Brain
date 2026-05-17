@@ -27,6 +27,10 @@ class Chunk(Base):
     heading_path: Mapped[str | None] = mapped_column(Text, default=None)
     token_count: Mapped[int] = mapped_column(Integer, default=0)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(1536), nullable=True, default=None)
+    search_vector: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None, deferred=True,
+        doc="tsvector generated column for full-text search — set via DB trigger",
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
