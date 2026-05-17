@@ -35,6 +35,7 @@ import {
 import { useOrganization } from "@/contexts/OrganizationContext"
 import { useFolders, useDeleteFolder } from "@/hooks/useFolders"
 import { useInfiniteNotes, useCreateNote, useDeleteNote, useUploadNote } from "@/hooks/useNotes"
+import { useRecentNotes } from "@/hooks/useRecentNotes"
 import { useCurrentFolderPath } from "@/hooks/useSyncOrgFromSlug"
 import { FolderModal } from "./FolderModal"
 import type { FolderResponse } from "@/api/folder"
@@ -91,6 +92,7 @@ export function FolderContent({ folderId }: FolderContentProps) {
   const deleteNote = useDeleteNote()
   const deleteFolder = useDeleteFolder()
   const uploadNote = useUploadNote()
+  const { trackRecentNote } = useRecentNotes(orgId)
 
   const [uploadOpen, setUploadOpen] = useState(false)
 
@@ -207,6 +209,7 @@ export function FolderContent({ folderId }: FolderContentProps) {
       const path = [...currentPath, row.data.slug].join("/")
       navigate(`/dashboard/${selectedOrg.slug}/${path}`)
     } else {
+      trackRecentNote(row.data.id)
       navigate(`/dashboard/${selectedOrg.slug}/note/${row.data.id}`)
     }
   }

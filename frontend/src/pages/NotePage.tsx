@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useOrganization } from "@/contexts/OrganizationContext"
 import { useNote, useUpdateNote } from "@/hooks/useNotes"
 import { SimpleEditor } from "@/components/tiptap-templates/simple/simple-editor"
+import { useRecentNotes } from "@/hooks/useRecentNotes"
 import api from "@/api/client"
 
 interface Attachment {
@@ -32,6 +33,7 @@ export default function NotePage() {
   const orgId = selectedOrg?.id
   const { data: note, isLoading } = useNote(orgId, noteId)
   const updateNote = useUpdateNote()
+  const { trackRecentNote } = useRecentNotes(orgId)
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -49,6 +51,7 @@ export default function NotePage() {
     if (note) {
       setTitle(note.title)
       setContent(note.content ?? "")
+      trackRecentNote(note.id)
     }
   }, [note])
 

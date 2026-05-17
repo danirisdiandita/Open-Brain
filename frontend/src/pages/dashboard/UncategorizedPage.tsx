@@ -41,6 +41,7 @@ import {
   useUpdateNote,
   useSuggestFolder,
 } from "@/hooks/useNotes"
+import { useRecentNotes } from "@/hooks/useRecentNotes"
 import type { NoteResponse } from "@/api/note"
 import type { FolderResponse } from "@/api/folder"
 
@@ -85,6 +86,7 @@ export default function UncategorizedPage() {
   const deleteNote = useDeleteNote()
   const updateNote = useUpdateNote()
   const suggestFolder = useSuggestFolder()
+  const { trackRecentNote } = useRecentNotes(orgId)
 
   const unassigned = useMemo(
     () => notes?.filter((n) => !n.folder_id) ?? [],
@@ -249,7 +251,7 @@ export default function UncategorizedPage() {
                 <tr
                   key={note.id}
                   className="border-b last:border-0 hover:bg-muted/30 cursor-pointer transition-colors"
-                  onClick={() => navigate(`/dashboard/${selectedOrg?.slug}/note/${note.id}`)}
+                  onClick={() => { trackRecentNote(note.id); navigate(`/dashboard/${selectedOrg?.slug}/note/${note.id}`) }}
                 >
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-3 min-w-0">
