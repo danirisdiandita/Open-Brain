@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, Text, ForeignKey, UniqueConstraint, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,4 +38,7 @@ class Organization(Base):
     )
     chunks: Mapped[list["Chunk"]] = relationship(
         back_populates="organization", cascade="all, delete-orphan"
+    )
+    ai_config: Mapped["OrganizationAIConfig | None"] = relationship(
+        back_populates="organization", uselist=False, cascade="all, delete-orphan"
     )

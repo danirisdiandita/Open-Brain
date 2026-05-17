@@ -1,15 +1,22 @@
-import uuid
-import tempfile
 import os
+import tempfile
+import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.database import get_db
+from app.models.chunk import Chunk
 from app.models.user import User
-from app.schemas.note import NoteCreate, NoteUpdate, NoteResponse
+from app.schemas.note import NoteCreate, NoteResponse, NoteUpdate
+from app.services.ai import suggest_folder_for_note
+from app.services.authorization import get_accessible_folder_ids, get_accessible_note_ids
+from app.services.chunking import chunk_text
+from app.services.document import DocumentParseError, parse_document
+from app.services.embedding import embed_batch
+from app.services.folder import build_folder_tree, list_folders
 from app.services.note import (
     NoteError,
     create_note,
@@ -18,13 +25,8 @@ from app.services.note import (
     list_notes,
     update_note,
 )
-from app.services.document import parse_document, DocumentParseError
-from app.services.ai import suggest_folder_for_note
-from app.services.folder import list_folders, build_folder_tree
-from app.services.chunking import chunk_text
-from app.services.embedding import embed_batch
+from app.services.prompts import get_org_ai_config
 from app.services.vector_store import get_vector_store
-from app.models.chunk import Chunk
 
 router = APIRouter(prefix="/organizations/{org_id}/notes", tags=["notes"])
 
@@ -39,7 +41,14 @@ async def list_org_notes(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        return await list_notes(db, org_id, folder_id, user, skip, limit)
+        notes = await list_notes(db, org_id, folder_id, user, skip, limit)
+        allowed_folders = await get_accessible_folder_ids(db, org_id, user.id)
+        allowed_notes = await get_accessible_note_ids(db, org_id, user.id)
+        if allowed_folders is not None or allowed_notes is not None:
+            fids = allowed_folders or set()
+            nids = allowed_notes or set()
+            notes = [n for n in notes if (n.folder_id and n.folder_id in fids) or n.id in nids]
+        return notes
     except NoteError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
 
@@ -87,11 +96,13 @@ async def suggest_note_folder(
         note = await get_note(db, note_id, org_id, user)
         folders = await list_folders(db, org_id, user)
         tree = build_folder_tree(folders)
+        org_config = await get_org_ai_config(db, org_id)
 
         result = await suggest_folder_for_note(
             note_title=note.title,
             note_content=note.content,
             folder_tree=tree,
+            org_config=org_config,
         )
         return result
     except NoteError as exc:

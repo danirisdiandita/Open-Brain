@@ -12,15 +12,16 @@ from app.models.chunk import Chunk
 from app.models.note import Note
 from app.models.user import User
 from app.schemas.rag import (
-    RAGSearchRequest,
-    RAGSearchResponse,
-    RAGChunkResponse,
     RAGChatRequest,
     RAGChatResponse,
     RAGChatSource,
+    RAGChunkResponse,
+    RAGSearchRequest,
+    RAGSearchResponse,
 )
 from app.services.chunking import chunk_text
-from app.services.embedding import embed_text, embed_batch
+from app.services.embedding import embed_batch, embed_text
+from app.services.prompts import get_effective_config, get_org_ai_config, get_prompt
 from app.services.vector_store import get_vector_store
 
 router = APIRouter(prefix="/organizations/{org_id}/rag", tags=["rag"])
@@ -80,23 +81,23 @@ async def rag_chat(
             heading=r.heading_path,
         ))
 
+    from langchain_core.messages import HumanMessage, SystemMessage
     from langchain_openai import ChatOpenAI
-    from langchain_core.messages import SystemMessage, HumanMessage
+
     from app.config import get_settings
 
+    org_config = await get_org_ai_config(db, org_id)
+
     settings = get_settings()
+    config = get_effective_config(org_config)
     llm = ChatOpenAI(
-        model=settings.openai_model,
+        model=config["ai_model"],
         api_key=settings.openai_api_key,
-        temperature=0.3,
+        temperature=config["temperature"],
     )
 
-    system = (
-        "You are an assistant for Open Brain, a knowledge base. "
-        "Answer using ONLY the context below. "
-        "If the context doesn't contain the answer, say so. "
-        "Always cite which note the information comes from.\n\n"
-        f"Context:\n{chr(10).join(context_parts)}"
+    system = get_prompt("rag_system", org_config,
+        context="\n".join(context_parts),
     )
 
     response = await llm.ainvoke([

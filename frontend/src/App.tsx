@@ -8,7 +8,7 @@ import {
   ResetPasswordPage,
   VerifyEmailPage,
 } from "@/pages/auth"
-import { DashboardLayout, DashboardPage, FolderPage, WorkspaceFlowPage, UncategorizedPage } from "@/pages/dashboard"
+import { DashboardLayout, DashboardPage, FolderPage, WorkspaceFlowPage, UncategorizedPage, TeamMembersPage, SettingsPage } from "@/pages/dashboard"
 import NotePage from "@/pages/NotePage"
 import { OnboardingGuard } from "@/components/OnboardingGuard"
 import LandingPage from "@/pages/LandingPage"
@@ -78,6 +78,8 @@ export default function App() {
             <Route index element={<DashboardPage />} />
             <Route path="flow" element={<WorkspaceFlowPage />} />
             <Route path="uncategorized" element={<UncategorizedPage />} />
+            <Route path="team-members" element={<TeamMembersPage />} />
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<FolderPage />} />
           </Route>
           <Route path="/" element={<LandingPage />} />

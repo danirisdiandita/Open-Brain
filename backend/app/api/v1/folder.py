@@ -9,25 +9,26 @@ from app.database import get_db
 from app.models.folder import Folder
 from app.models.user import User
 from app.schemas.folder import (
+    ApplyFoldersRequest,
     FolderCreate,
-    FolderUpdate,
     FolderResponse,
     FolderTreeResponse,
+    FolderUpdate,
     GenerateFoldersRequest,
     GenerateFoldersResponse,
-    ApplyFoldersRequest,
 )
+from app.services.ai import generate_folder_tree as ai_generate_tree
+from app.services.authorization import get_accessible_folder_ids
 from app.services.folder import (
     FolderError,
+    build_folder_tree,
     create_folder,
     delete_folder,
     get_folder,
     list_folders,
     update_folder,
-    get_folder_tree,
-    build_folder_tree,
 )
-from app.services.ai import generate_folder_tree as ai_generate_tree
+from app.services.prompts import get_org_ai_config
 
 router = APIRouter(prefix="/organizations/{org_id}/folders", tags=["folders"])
 
@@ -38,7 +39,11 @@ async def list_org_folders(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        return await list_folders(db, org_id, user)
+        folders = await list_folders(db, org_id, user)
+        allowed = await get_accessible_folder_ids(db, org_id, user.id)
+        if allowed is not None:
+            folders = [f for f in folders if f.id in allowed]
+        return folders
     except FolderError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
 
@@ -49,7 +54,11 @@ async def get_org_folder_tree(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        return await get_folder_tree(db, org_id, user)
+        folders = await list_folders(db, org_id, user)
+        allowed = await get_accessible_folder_ids(db, org_id, user.id)
+        if allowed is not None:
+            folders = [f for f in folders if f.id in allowed]
+        return {"roots": build_folder_tree(folders)}
     except FolderError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
 
@@ -64,8 +73,9 @@ async def generate_folders(
     try:
         folders = await list_folders(db, org_id, user)
         existing = build_folder_tree(folders)
+        org_config = await get_org_ai_config(db, org_id)
 
-        result = await ai_generate_tree(body.description, existing)
+        result = await ai_generate_tree(body.description, existing, org_config=org_config)
 
         all_roots = result.roots
         new_count = count_new_nodes(all_roots)
@@ -131,7 +141,6 @@ async def apply_generated_folders(
 
 
 def count_new_nodes(roots: list) -> int:
-    from app.schemas.folder import FolderTreeNode
     c = 0
     for r in roots:
         if not r.is_existing:

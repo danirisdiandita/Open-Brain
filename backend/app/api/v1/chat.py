@@ -9,14 +9,23 @@ from app.api.deps import get_current_user
 from app.database import get_db
 from app.models.user import User
 from app.schemas.chat import (
-    ChatRequest, ChatResponse, ChatSourceSchema,
-    ChatSessionDetailResponse, SessionListResponse,
+    ChatRequest,
+    ChatResponse,
+    ChatSessionDetailResponse,
+    ChatSourceSchema,
+    SessionListResponse,
 )
 from app.services.chat import (
-    create_session, list_sessions, get_session, get_messages,
-    add_message, delete_session, update_session_title,
+    add_message,
+    create_session,
+    delete_session,
+    get_messages,
+    get_session,
+    list_sessions,
+    update_session_title,
 )
 from app.services.embedding import embed_text
+from app.services.prompts import get_org_ai_config, get_prompt
 from app.services.vector_store import get_vector_store
 
 router = APIRouter(prefix="/organizations/{org_id}/chat", tags=["chat"])
@@ -126,26 +135,28 @@ async def chat(
             heading=r.heading_path,
         ))
 
-    # Build prompt with conversation history
-    system = (
-        "You are an assistant for Open Brain, a knowledge base. "
-        "Answer using ONLY the context below. "
-        "If the context doesn't contain the answer, say so. "
-        "Always cite which note the information comes from. "
-        "Be concise and helpful.\n\n"
-        f"Conversation history:\n{history}\n\n"
-        f"Relevant knowledge base context:\n{chr(10).join(context_parts)}"
+    # Load org AI config
+    org_config = await get_org_ai_config(db, org_id)
+
+    history_section = f"Conversation history:\n{history}\n\n" if history else ""
+
+    system = get_prompt("chat_system", org_config,
+        history_section=history_section,
+        context="\n".join(context_parts),
     )
 
+    from langchain_core.messages import HumanMessage, SystemMessage
     from langchain_openai import ChatOpenAI
-    from langchain_core.messages import SystemMessage, HumanMessage
+
     from app.config import get_settings
+    from app.services.prompts import get_effective_config
 
     settings = get_settings()
+    config = get_effective_config(org_config)
     llm = ChatOpenAI(
-        model=settings.openai_model,
+        model=config["ai_model"],
         api_key=settings.openai_api_key,
-        temperature=0.3,
+        temperature=config["temperature"],
     )
 
     response = await llm.ainvoke([
