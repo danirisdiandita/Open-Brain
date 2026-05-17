@@ -132,35 +132,57 @@ class Settings(BaseSettings):
         default=64,
         description="Token overlap between adjacent chunks (env: RAG_CHUNK_OVERLAP)",
     )
+    rag_chunk_method: str = Field(
+        default="recursive",
+        description="Chunking method: recursive (default) | semantic | llm (env: RAG_CHUNK_METHOD)",
+    )
+    rag_semantic_threshold: int = Field(
+        default=90,
+        description="Percentile threshold for semantic chunking breakpoint (env: RAG_SEMANTIC_THRESHOLD)",
+    )
 
-    # ── S3 / Object Storage ─────────────────────────────
-    s3_endpoint_url: str = Field(
-        default="",
-        description="S3-compatible endpoint URL — leave empty for AWS S3 (env: S3_ENDPOINT_URL)",
-    )
-    s3_region: str = Field(
-        default="us-east-1",
-        description="S3 region (env: S3_REGION)",
-    )
-    s3_access_key: str = Field(
-        default="",
-        description="S3 access key ID (env: S3_ACCESS_KEY)",
-    )
-    s3_secret_key: str = Field(
-        default="",
-        description="S3 secret access key (env: S3_SECRET_KEY)",
-    )
-    s3_bucket: str = Field(
-        default="openbrain",
-        description="S3 bucket name for file uploads (env: S3_BUCKET)",
-    )
-    s3_use_path_style: bool = Field(
+    # ── RAG / Hybrid Retrieval ──────────────────────────
+    rag_hybrid_enabled: bool = Field(
         default=False,
-        description="Use path-style addressing (required for MinIO / LocalStack) (env: S3_USE_PATH_STYLE)",
+        description="Enable hybrid vector + keyword retrieval (env: RAG_HYBRID_ENABLED)",
     )
-    s3_public_url: str = Field(
+    rag_hybrid_vector_weight: float = Field(
+        default=0.7,
+        description="Vector score weight in hybrid search 0.0-1.0 (env: RAG_HYBRID_VECTOR_WEIGHT)",
+    )
+    rag_hybrid_keyword_weight: float = Field(
+        default=0.3,
+        description="Keyword score weight in hybrid search 0.0-1.0 (env: RAG_HYBRID_KEYWORD_WEIGHT)",
+    )
+
+    # ── RAG / Reranker ──────────────────────────────────
+    rag_rerank_enabled: bool = Field(
+        default=False,
+        description="Enable cross-encoder reranking after retrieval (env: RAG_RERANK_ENABLED)",
+    )
+    rag_rerank_top_n: int = Field(
+        default=10,
+        description="Number of chunks to keep after reranking (env: RAG_RERANK_TOP_N)",
+    )
+    rag_coarse_top_k: int = Field(
+        default=100,
+        description="Candidates from initial vector search before rerank (env: RAG_COARSE_TOP_K)",
+    )
+
+    # ── RAG / Agent ─────────────────────────────────────
+    rag_agent_enabled: bool = Field(
+        default=False,
+        description="Enable agentic ReAct mode for chat (env: RAG_AGENT_ENABLED)",
+    )
+    rag_agent_max_iterations: int = Field(
+        default=5,
+        description="Max reasoning steps for ReAct agent (env: RAG_AGENT_MAX_ITERATIONS)",
+    )
+
+    # ── External Services ────────────────────────────────
+    cohere_api_key: str = Field(
         default="",
-        description="Public base URL for S3 objects — leave empty for signed URLs (env: S3_PUBLIC_URL)",
+        description="Cohere API key for reranker (env: COHERE_API_KEY)",
     )
 
     # ── RAG / Vector Store ───────────────────────────────

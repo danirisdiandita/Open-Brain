@@ -48,8 +48,21 @@ class PgVectorStore(VectorStore):
         await db.flush()
 
     async def search(
+        self, db: AsyncSession, embedding: list[float], org_id: uuid.UUID, top_k: int = 10,
+        query_text: str | None = None,
+    ) -> list[dict]:
+        settings = get_settings()
+
+        if settings.rag_hybrid_enabled and query_text:
+            return await self._hybrid_search(db, embedding, org_id, top_k, query_text)
+        return await self._vector_search(db, embedding, org_id, top_k)
+
+    async def _vector_search(
         self, db: AsyncSession, embedding: list[float], org_id: uuid.UUID, top_k: int = 10
     ) -> list[dict]:
+        settings = get_settings()
+        limit = settings.rag_coarse_top_k if settings.rag_rerank_enabled else top_k
+
         emb_str = f"[{','.join(str(x) for x in embedding)}]"
         query = text("""
             SELECT id, content, note_id, heading_path, note_title, similarity
@@ -70,7 +83,43 @@ class PgVectorStore(VectorStore):
         result = await db.execute(query, {
             "emb": emb_str,
             "org_id": org_id,
+            "top_k": limit,
+        })
+        return result.mappings().all()
+
+    async def _hybrid_search(
+        self, db: AsyncSession, embedding: list[float], org_id: uuid.UUID,
+        top_k: int = 10, query_text: str = "",
+    ) -> list[dict]:
+        settings = get_settings()
+
+        emb_str = f"[{','.join(str(x) for x in embedding)}]"
+        query = text("""
+            SELECT id, content, note_id, heading_path, note_title,
+                   (:vw * (1 - (embedding <=> :emb))) +
+                   (:kw * COALESCE(ts_rank(search_vector, plainto_tsquery('english', :q)), 0))
+                   AS similarity
+            FROM (
+                SELECT DISTINCT ON (c.note_id)
+                    c.id, c.content, c.note_id, c.heading_path,
+                    n.title AS note_title,
+                    c.embedding, c.search_vector
+                FROM chunks c
+                JOIN notes n ON n.id = c.note_id
+                WHERE c.organization_id = :org_id
+                  AND c.embedding IS NOT NULL
+                ORDER BY c.note_id, c.embedding <=> :emb
+            ) ranked
+            ORDER BY similarity DESC
+            LIMIT :top_k
+        """)
+        result = await db.execute(query, {
+            "emb": emb_str,
+            "org_id": org_id,
             "top_k": top_k,
+            "vw": settings.rag_hybrid_vector_weight,
+            "kw": settings.rag_hybrid_keyword_weight,
+            "q": query_text,
         })
         return result.mappings().all()
 
