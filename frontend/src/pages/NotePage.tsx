@@ -150,7 +150,7 @@ export default function NotePage() {
           </Button>
         </div>
 
-        <div className="bg-background rounded-lg shadow-lg border p-4 space-y-3">
+        <div className="bg-background rounded-2xl shadow-sm border p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold flex items-center gap-2">
               <Paperclip className="h-4 w-4 text-muted-foreground" />
@@ -203,7 +203,7 @@ export default function NotePage() {
           )}
         </div>
 
-        <div className="bg-background rounded-lg shadow-lg flex-1 flex flex-col">
+        <div className="bg-background rounded-2xl shadow-sm border flex-1 flex flex-col">
           <SimpleEditor key={noteId} content={note.content ?? ""} onChange={setContent} />
         </div>
       </div>

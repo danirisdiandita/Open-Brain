@@ -238,7 +238,7 @@ export function FolderContent({ folderId }: FolderContentProps) {
   const renderGrid = () => (
     <>
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-dashed flex flex-col items-center justify-center py-16 px-4 text-center">
+        <div className="rounded-2xl border border-dashed flex flex-col items-center justify-center py-16 px-4 text-center">
           <Folder className="h-10 w-10 text-muted-foreground/30 mb-4" />
           <h3 className="text-base font-medium">This folder is empty</h3>
           <p className="text-sm text-muted-foreground mt-1 max-w-sm">
@@ -339,7 +339,7 @@ export function FolderContent({ folderId }: FolderContentProps) {
   const renderTable = () => (
     <>
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-dashed flex flex-col items-center justify-center py-16 px-4 text-center">
+        <div className="rounded-2xl border border-dashed flex flex-col items-center justify-center py-16 px-4 text-center">
           <Folder className="h-10 w-10 text-muted-foreground/30 mb-4" />
           <h3 className="text-base font-medium">This folder is empty</h3>
           <p className="text-sm text-muted-foreground mt-1 max-w-sm">
@@ -357,7 +357,7 @@ export function FolderContent({ folderId }: FolderContentProps) {
           </div>
         </div>
       ) : (
-        <div className="rounded-lg border">
+        <div className="rounded-2xl border">
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">

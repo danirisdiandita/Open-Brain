@@ -234,7 +234,7 @@ export default function UncategorizedPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="rounded-lg border">
+        <div className="rounded-2xl border">
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">
@@ -501,7 +501,7 @@ export default function UncategorizedPage() {
                   return (
                     <button
                       key={i}
-                      className={`w-full text-left rounded-lg border p-3 transition-colors ${
+                      className={`w-full text-left rounded-2xl border p-3 transition-colors ${
                         isBest ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
                       }`}
                       onClick={() => setAiSelectedPath(s.folder_path)}

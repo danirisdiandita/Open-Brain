@@ -162,7 +162,7 @@ export default function TeamMembersPage() {
       </div>
 
       {/* ── Members table ── */}
-      <div className="rounded-lg border">
+      <div className="rounded-2xl border">
         <div className="px-4 py-3 border-b bg-muted/50">
           <h2 className="text-sm font-semibold">Active Members ({members?.length ?? 0})</h2>
         </div>
@@ -235,7 +235,7 @@ export default function TeamMembersPage() {
 
       {/* ── Pending invitations ── */}
       {(invitations?.length ?? 0) > 0 && (
-        <div className="rounded-lg border border-dashed">
+        <div className="rounded-2xl border border-dashed">
           <div className="px-4 py-3 border-b bg-muted/30">
             <h2 className="text-sm font-semibold flex items-center gap-2">
               <Clock className="h-3.5 w-3.5 text-muted-foreground" />
@@ -315,7 +315,7 @@ export default function TeamMembersPage() {
                 {ROLES.map((role) => (
                   <button
                     key={role.value}
-                    className={`flex items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
+                    className={`flex items-start gap-3 rounded-2xl border p-3 text-left transition-colors ${
                       inviteRole === role.value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
                     }`}
                     onClick={() => setInviteRole(role.value)}
@@ -344,7 +344,7 @@ export default function TeamMembersPage() {
                 ].map((scope) => (
                   <button
                     key={scope.value}
-                    className={`flex items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
+                    className={`flex items-start gap-3 rounded-2xl border p-3 text-left transition-colors ${
                       inviteScope === scope.value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
                     }`}
                     onClick={() => setInviteScope(scope.value)}
