@@ -13,13 +13,12 @@ services:
     volumes:
       - ./pgdata:/var/lib/postgresql/data
 
-  minio:
-    container_name: openbrain_minio
+  rustfs_openbrain:
+    container_name: rustfs_openbrain
     image: rustfs/rustfs:latest
-    command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      RUSTFS_ACCESS_KEY: openbrain
+      RUSTFS_SECRET_KEY: fdeglkTulJzQeePo
     restart: always
     ports:
       - "9002:9000"
