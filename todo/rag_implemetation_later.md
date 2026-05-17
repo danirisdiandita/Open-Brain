@@ -277,3 +277,203 @@ compressed = compressor.compress_documents(final_chunks, query)
 | **Phase 3** (later) | Agent mode for chatbot | 4h | High — unlocks complex queries |
 | **Phase 4** (scale) | Reranker + compression | 3h | Medium — needed at 1000+ docs |
 | **Phase 5** (optional) | LLM chunking for high-value docs | 2h | Low — expensive, niche benefit |
+
+---
+
+## Concrete Implementation Plan (Existing Codebase)
+
+> **Rule:** All algorithms and configurations are controlled via environment variables.
+> Current codebase settings become the **defaults**. No hardcoded values.
+
+### New Environment Variables
+
+Add to `backend/app/config.py` and `backend/.env.example`:
+
+| Env Var | Default | Description |
+|---------|---------|-------------|
+| `RAG_CHUNK_METHOD` | `recursive` | Chunking method: `recursive`, `semantic`, `llm` |
+| `RAG_SEMANTIC_THRESHOLD` | `90` | Percentile threshold for semantic chunking breakpoint |
+| `RAG_HYBRID_ENABLED` | `false` | Enable hybrid retrieval (vector + keyword) |
+| `RAG_HYBRID_VECTOR_WEIGHT` | `0.7` | Weight for vector score in hybrid (0.0-1.0) |
+| `RAG_HYBRID_KEYWORD_WEIGHT` | `0.3` | Weight for keyword score in hybrid (0.0-1.0) |
+| `RAG_RERANK_ENABLED` | `false` | Enable cross-encoder reranking |
+| `RAG_RERANK_TOP_N` | `10` | Number of chunks to keep after reranking |
+| `RAG_AGENT_ENABLED` | `false` | Enable agentic ReAct mode for chat |
+| `RAG_AGENT_MAX_ITERATIONS` | `5` | Max reasoning steps for ReAct agent |
+| `RAG_COARSE_TOP_K` | `100` | Candidates from initial vector search before rerank |
+| `COHERE_API_KEY` | `""` | Cohere API key for reranker (only if `RAG_RERANK_ENABLED=true`) |
+
+### File-by-File Changes
+
+#### `backend/app/config.py`
+
+Add these `Field` entries after the existing `rag_chunk_overlap`:
+
+```python
+# Chunking method
+rag_chunk_method: str = Field(
+    default="recursive",
+    description="Chunking method: recursive | semantic | llm (env: RAG_CHUNK_METHOD)",
+)
+rag_semantic_threshold: int = Field(
+    default=90,
+    description="Percentile threshold for semantic chunking (env: RAG_SEMANTIC_THRESHOLD)",
+)
+
+# Hybrid retrieval
+rag_hybrid_enabled: bool = Field(
+    default=False,
+    description="Enable hybrid vector + keyword retrieval (env: RAG_HYBRID_ENABLED)",
+)
+rag_hybrid_vector_weight: float = Field(
+    default=0.7,
+    description="Vector score weight in hybrid search (env: RAG_HYBRID_VECTOR_WEIGHT)",
+)
+rag_hybrid_keyword_weight: float = Field(
+    default=0.3,
+    description="Keyword score weight in hybrid search (env: RAG_HYBRID_KEYWORD_WEIGHT)",
+)
+
+# Reranker
+rag_rerank_enabled: bool = Field(
+    default=False,
+    description="Enable cross-encoder reranking after retrieval (env: RAG_RERANK_ENABLED)",
+)
+rag_rerank_top_n: int = Field(
+    default=10,
+    description="Top N chunks to keep after reranking (env: RAG_RERANK_TOP_N)",
+)
+rag_coarse_top_k: int = Field(
+    default=100,
+    description="Candidates from initial vector search before rerank (env: RAG_COARSE_TOP_K)",
+)
+
+# Agent
+rag_agent_enabled: bool = Field(
+    default=False,
+    description="Enable agentic ReAct mode for chat (env: RAG_AGENT_ENABLED)",
+)
+rag_agent_max_iterations: int = Field(
+    default=5,
+    description="Max reasoning steps for ReAct agent (env: RAG_AGENT_MAX_ITERATIONS)",
+)
+
+# External services
+cohere_api_key: str = Field(
+    default="",
+    description="Cohere API key for reranker (env: COHERE_API_KEY)",
+)
+```
+
+#### `backend/app/services/chunking.py`
+
+Implement method dispatch based on `RAG_CHUNK_METHOD`:
+
+```python
+# Current function becomes _chunk_recursive()
+# New functions: _chunk_semantic(), _chunk_llm()
+# chunk_text() reads settings.rag_chunk_method and dispatches
+
+def chunk_text(content: str) -> list[str]:
+    settings = get_settings()
+    if settings.rag_chunk_method == "semantic":
+        return _chunk_semantic(content)
+    elif settings.rag_chunk_method == "llm":
+        return _chunk_llm(content)
+    else:
+        return _chunk_recursive(content)  # current logic — default
+```
+
+#### `backend/app/services/vector_store.py`
+
+Add hybrid search to `PgVectorStore.search()`:
+
+```python
+async def search(self, db, embedding, org_id, top_k=10):
+    settings = get_settings()
+
+    if not settings.rag_hybrid_enabled:
+        # Current pure vector search — unchanged
+        return await self._vector_search(db, embedding, org_id, top_k)
+
+    # Hybrid: vector + keyword
+    # 1. Run vector search (coarse_top_k candidates)
+    # 2. Run tsquery keyword search on search_vector column
+    # 3. RRF fusion or weighted score combination
+    return await self._hybrid_search(db, embedding, query_text, org_id, top_k)
+```
+
+**Migration needed:** Add `search_vector` column to `chunks` table:
+
+```sql
+ALTER TABLE chunks ADD COLUMN search_vector tsvector
+    GENERATED ALWAYS AS (to_tsvector('english', content)) STORED;
+CREATE INDEX ix_chunks_search ON chunks USING GIN (search_vector);
+```
+
+Hybrid SQL:
+
+```sql
+SELECT ..., 
+    (:vector_weight * (1 - (c.embedding <=> :emb))) +
+    (:keyword_weight * ts_rank(c.search_vector, plainto_tsquery('english', :q)))
+    AS hybrid_score
+FROM chunks c
+WHERE ... 
+  AND (c.embedding IS NOT NULL OR c.search_vector @@ plainto_tsquery('english', :q))
+ORDER BY hybrid_score DESC
+LIMIT :top_k
+```
+
+#### `backend/app/services/agent.py` (NEW FILE)
+
+ReAct agent using LangChain tools:
+
+```python
+from langchain.agents import create_react_agent
+from app.config import get_settings
+
+# Tools
+tools = [
+    search_knowledge_base,  # vector search
+    search_by_keyword,      # tsquery search (if hybrid enabled)
+]
+
+def get_agent():
+    settings = get_settings()
+    if not settings.rag_agent_enabled:
+        return None
+    return create_react_agent(llm, tools, prompt)
+```
+
+#### `backend/app/api/v1/chat.py`
+
+Wire agent toggle:
+
+```python
+@router.post("", response_model=ChatResponse)
+async def chat(...):
+    settings = get_settings()
+
+    if settings.rag_agent_enabled:
+        # Agentic path — multi-step reasoning
+        agent = get_agent()
+        result = await agent.ainvoke({"input": body.question})
+        # parse agent result
+    else:
+        # Current single-step RAG — unchanged
+```
+
+#### `backend/alembic/`
+
+New migration for `search_vector` column + GIN index on `chunks`.
+
+### Summary of All Config Defaults (Current = Production-Ready)
+
+| Config | Default | When to change |
+|--------|---------|----------------|
+| `RAG_CHUNK_METHOD=recursive` | Recursive char splitting | Switch to `semantic` for better chunk coherence |
+| `RAG_HYBRID_ENABLED=false` | Pure vector search | Enable when users need exact keyword matches |
+| `RAG_HYBRID_VECTOR_WEIGHT=0.7` | 70% vector, 30% keyword | Tune per domain after A/B testing |
+| `RAG_RERANK_ENABLED=false` | No reranking | Enable at >1000 docs for precision |
+| `RAG_AGENT_ENABLED=false` | Single-step RAG | Enable for complex multi-source queries |
