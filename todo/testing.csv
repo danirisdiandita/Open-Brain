@@ -1,0 +1,104 @@
+Feature,Area,Test Case,Steps,Expected Result,Status
+Auth,Register,Register new user,"1. Go to /register 2. Fill email/password/name 3. Submit","Shows success message, redirects to login",Pending
+Auth,Register,Register duplicate email,"1. Register with already-used email 2. Submit","Shows error 'Email already exists'",Pending
+Auth,Login,Login with valid credentials,"1. Go to /login 2. Enter email/password 3. Submit","Redirects to /dashboard",Pending
+Auth,Login,Login with wrong password,"1. Enter email + wrong password 2. Submit","Shows error message, stays on login page",Pending
+Auth,Login,Login with unverified email,"1. Login with unverified account 2. Submit","Shows message to verify email first",Pending
+Auth,Verify Email,Verify email with valid token,"1. Click link from verification email 2. Confirm","Shows 'Email verified', can now login",Pending
+Auth,Forgot Password,Send reset link,"1. Go to /forgot-password 2. Enter email 3. Submit","Shows 'If email exists, reset link sent'",Pending
+Auth,Reset Password,Reset with valid token,"1. Click reset link 2. Enter new password 3. Submit","Redirects to login, new password works",Pending
+Auth,Refresh Token,Token refresh on 401,"1. Wait for access token to expire 2. Make API call","Silently refreshes token, request succeeds",Pending
+Auth,Logout,Logout clears session,"1. Click Sign Out in sidebar","Clears tokens, redirects to /login",Pending
+Organization,Create,Create new organization,"1. Click org switcher > Create 2. Fill name/slug 3. Submit","Org created, switches to new org",Pending
+Organization,Switch,Switch between orgs,"1. Click org switcher 2. Select different org","Sidebar/content updates to new org",Pending
+Organization,Settings,View org settings,"1. Go to /dashboard/orgSlug/settings","Shows org name, slug, description, AI config",Pending
+Organization,Settings,Update org AI config,"1. In settings, change prompts 2. Save","Prompts update, AI responses change",Pending
+Folder,Create,Create root folder,"1. In sidebar Workspaces click + 2. Fill name/slug 3. Submit","Folder appears in sidebar tree",Pending
+Folder,Create,Create subfolder,"1. Hover folder in sidebar 2. Click ... 3. Add subfolder","Subfolder appears nested in tree",Pending
+Folder,Edit,Edit folder name,"1. Hover folder 2. Click ... 3. Edit 4. Change name 5. Save","Folder name updates in sidebar",Pending
+Folder,Delete,Delete folder,"1. Hover folder 2. Click ... 3. Delete 4. Confirm","Folder removed from tree, notes survive",Pending
+Folder,Tree,Expand/collapse folders,"1. Click chevron on folder in sidebar","Children show/hide, chevron rotates",Pending
+Folder,Tree,Drag folder to reorder,"1. Drag folder by grip icon 2. Drop at new position","Folder moves, order persists on reload",Pending
+Folder,Tree,Click folder navigates,"1. Click folder name in sidebar","Navigates to /dashboard/org/folder-path",Pending
+Folder,Navigate,Breadcrumb shows path,"1. Navigate deep into folders","Header breadcrumb shows folder path",Pending
+Folder,Content,Show child folders and notes,"1. Click a folder with children","Table shows child folders + notes sorted",Pending
+Folder,Content,Toggle table/grid view,"1. In folder page, click grid icon 2. Click table icon","View switches, preference saved",Pending
+Folder,Content,Empty folder state,"1. Go to folder with no children","Shows 'This folder is empty' with create buttons",Pending
+Folder,AI Generate,Generate folders with AI,"1. Click Generate Folders with AI 2. Enter description 3. Generate 4. Preview 5. Create","Folders created, appear in sidebar",Pending
+Folder,AI Generate,Existing folders preserved,"1. Have existing folders 2. AI generate new ones 3. Apply","Existing folders kept, new ones added",Pending
+Folder,AI Generate,Preview zoom/pan,"1. In AI preview step 2. Scroll/pinch to zoom 3. Drag to pan","Preview is interactive",Pending
+Folder,AI Generate,Color legend shown,"1. In preview step 2. Check legend","Shows 'Will be created' and 'Already exists' colors",Pending
+Note,Create,Create blank note,"1. Go to folder 2. Click New > Blank Note 3. Fill title 4. Create","Navigates to new note editor",Pending
+Note,Create,Create uncategorized note,"1. Go to Dashboard 2. In Root click New Note","Note created without folder_id",Pending
+Note,Upload,Upload PDF creates note,"1. Go to folder 2. Click New > Upload File 3. Select PDF","Note created with docling-parsed content",Pending
+Note,Upload,Upload shows supported formats,"1. Open upload dialog","Shows PDF, DOCX, PPTX, HTML, TXT, PNG, JPG badges",Pending
+Note,Upload,Drag and drop zone works,"1. Open upload dialog 2. Drag file onto dropzone","Uploads file, creates note",Pending
+Note,Edit,Edit note in editor,"1. Click note 2. Type content 3. Click Save","Content saves, shows on reload",Pending
+Note,Edit,Title editable,"1. Click note 2. Change title 3. Save","Title updates in sidebar tree (if in folder)",Pending
+Note,Edit,Ctrl+S saves,"1. Edit note 2. Press Ctrl+S / Cmd+S","Note saves without clicking Save button",Pending
+Note,Move,Move to folder manually,"1. In note list click ... 2. Move to Folder 3. Select folder 4. Move","Note appears in target folder",Pending
+Note,Move,Move by AI,"1. Click Move by AI 2. AI suggests folders 3. Select one 4. Confirm","Note moved to selected folder",Pending
+Note,Move,Move by AI with new folder,"1. Enable 'allow new folder' 2. AI suggests new folder 3. Select 4. Create & Move","New folder created, note moved into it",Pending
+Note,Move,Move by AI shows scores,"1. Click Move by AI","Shows 3-5 suggestions with relevance scores 1-10",Pending
+Note,Delete,Delete note,"1. Click ... on note 2. Delete 3. Confirm","Note removed from list",Pending
+Note,Attachments,Add file to note,"1. Open note 2. Click Add File 3. Select file 4. Upload","File appears in Attachments section",Pending
+Note,Attachments,Download attachment,"1. Hover attachment 2. Click download icon","Opens file in new tab via presigned URL",Pending
+Note,Attachments,Delete attachment,"1. Hover attachment 2. Click X icon","Attachment removed from note",Pending
+Note,Attachments,Empty state,"1. Open note with no attachments","Shows 'No attachments yet'",Pending
+Note,Uncategorized,Uncategorized note visible,"1. Create note without folder 2. Go to Dashboard","Note appears under 'Root' section",Pending
+Note,Uncategorized,Uncategorized note in dedicated page,"1. Sidebar: click 'Team Members'? No, /dashboard/org/uncategorized","Shows all folder_id=NULL notes with CRUD",Pending
+Chat,Session,Start new chat,"1. Click 'Ask AI' button 2. Ask a question","AI answers with RAG context + sources",Pending
+Chat,Session,Session persists,"1. Ask questions 2. Close chat 3. Reopen","Previous messages reloaded from DB",Pending
+Chat,Session,Session title auto-set,"1. Start new chat 2. Ask first question","Session title becomes truncated question",Pending
+Chat,Session,New session button,"1. In chat, click + button","Starts fresh session, old one saved",Pending
+Chat,Session,Switch sessions,"1. Click history icon 2. Click a session","Loads that session's messages",Pending
+Chat,Session,Delete session,"1. In history 2. Click trash on session 3. Confirm","Session deleted from list",Pending
+Chat,Sources,Sources clickable,"1. Ask a question 2. Click source link","Navigates to that note",Pending
+Chat,Sources,Sources unique per note,"1. Ask question spanning multiple notes","Sources show different notes, not duplicates",Pending
+Chat,RAG,Chunks created on note save,"1. Create note with content 2. Check backend logs","Chunks created with embeddings",Pending
+Chat,RAG,Hybrid search enabled,"1. Set RAG_HYBRID_ENABLED=true 2. Ask question","Results use vector + keyword fusion",Pending
+Chat,RAG,Semantic chunking,"1. Set RAG_CHUNK_METHOD=semantic 2. Create note","Chunks split at semantic boundaries",Pending
+Dashboard,Header,Title and buttons coherent,"1. Go to /dashboard/org","Title left, buttons right on one row",Pending
+Dashboard,Header,Workspace Structure button,"1. Click Workspace Structure","Navigates to /dashboard/org/flow",Pending
+Dashboard,Header,Generate Folders button,"1. Click Generate Folders with AI","Opens AI dialog with step indicator",Pending
+Dashboard,Root,Root shows folders + notes,"1. Have root folders and uncategorized notes","Both appear in root table",Pending
+Dashboard,Root,Toggle table/grid,"1. Click grid icon 2. Click table icon","View toggles, preference saved",Pending
+Dashboard,Root,Grid cards uniform,"1. Switch to grid view","Cards have consistent height, icons visible",Pending
+Dashboard,Root,Folder click navigates,"1. Click root folder in table","Navigates into that folder",Pending
+Dashboard,Root,Note click navigates,"1. Click uncategorized note","Navigates to note editor",Pending
+Dashboard,Flow,Fullscreen flow page,"1. Click Workspace Structure 2. Observe","Full page React Flow with back button",Pending
+Dashboard,Flow,Folders + notes visible,"1. In flow page","Folder and note nodes visible with icons",Pending
+Dashboard,Flow,Zoom/pan/pinch,"1. In flow page 2. Scroll to zoom 3. Drag to pan","Zoom and pan work smoothly",Pending
+Dashboard,Flow,Layout toggle,"1. Click Horizontal/Vertical buttons","Tree re-layouts in chosen direction",Pending
+Dashboard,Flow,Background grid,"1. In flow page","Background grid visible with indigo color",Pending
+Dashboard,Flow,Click folder navigates,"1. Click folder node in flow","Navigates to that folder page",Pending
+Dashboard,Flow,Click note navigates,"1. Click note node in flow","Navigates to that note editor",Pending
+Sidebar,Navigation,Org selector shows name,"1. Look at sidebar header","Shows current org name with chevron",Pending
+Sidebar,Navigation,Nav items work,"1. Click Dashboard / Team Members / Settings","Navigates to correct page",Pending
+Sidebar,Navigation,Active item highlighted,"1. Navigate to a page","Sidebar item shows active state",Pending
+Sidebar,FolderTree,Trees fills to bottom,"1. Have many folders","Tree fills full sidebar height to footer",Pending
+Sidebar,FolderTree,Tree scrollable,"1. Have many nested folders 2. Scroll","Tree scrolls internally",Pending
+Team Members,View,View member list,"1. Go to /dashboard/org/team-members","Shows members with roles, joined date",Pending
+Team Members,View,Role cards show counts,"1. View Team Members page","4 cards show counts per role",Pending
+Team Members,View,Admin sees manage buttons,"1. Login as admin 2. View members","Invite, role change, remove buttons visible",Pending
+Team Members,View,Non-admin sees limited UI,"1. Login as viewer 2. View members","No invite/manage buttons",Pending
+Team Members,Invite,Invite new member,"1. Admin clicks Invite 2. Enter email+role 3. Send","Invitation appears in pending list",Pending
+Team Members,Invite,Invite with access scope,"1. Invite with 'Selected Folders' scope","Invitation stores access_scope=selected",Pending
+Team Members,Invite,Invite shows scope selector,"1. Click Invite Member","Shows All Folders / Selected / No Access options",Pending
+Team Members,Invite,Revoke invitation,"1. Click X on pending invitation 2. Confirm","Invitation removed from list",Pending
+Team Members,Manage,Change member role,"1. Click ... on member 2. Select new role 3. Confirm","Member role updates",Pending
+Team Members,Manage,Remove member,"1. Click ... on member 2. Remove 3. Confirm","Member removed from org",Pending
+Access Control,Scope,Grant folder access,"1. Admin: PATCH member scope to selected 2. Grant folder","Member can only see that folder",Pending
+Access Control,Scope,Blocked scope,"1. Admin: set scope to blocked","Member sees no folders/notes",Pending
+Access Control,Scope,Full access default,"1. New member joins","Has access_scope=all, sees everything",Pending
+Access Control,Scope,Note-level access,"1. Grant note access to blocked user","User can see that specific note only",Pending
+Editor,SimpleEditor,Toolbar visible,"1. Open note","Shows toolbar with headings, bold, italic, lists, etc",Pending
+Editor,SimpleEditor,Typing works,"1. Click in editor 2. Type text","Text appears with proper formatting",Pending
+Editor,SimpleEditor,Theme stays light,"1. Navigate to note 2. Navigate back","Other pages not affected by editor theme",Pending
+Upload,Docling,PDF with formatting,"1. Upload PDF with headings/lists","Note content has proper markdown conversion",Pending
+Upload,Docling,ProseMirror JSON output,"1. Upload any doc","Backend returns ProseMirror JSON, editor renders it",Pending
+General,Error,404 page,"1. Navigate to /nonexistent","Shows NotFoundPage with link back",Pending
+General,Error,403 on unauthorized,"1. Try to access restricted endpoint","Returns 403 with message",Pending
+General,Error,Network error handling,"1. Disconnect network 2. Make API call","Shows error gracefully, no crash",Pending
+General,Responsive,Mobile sidebar collapses,"1. Resize to mobile width","Sidebar toggles, hamburger menu appears",Pending
+General,Responsive,Dashboard grid stacks,"1. Resize to mobile width","Root section stacks vertically",Pending
