@@ -45,9 +45,11 @@ class InvitationResponse(BaseModel):
     id: uuid.UUID
     email: str
     role: str
-    access_scope: str
-    created_at: datetime
-    expires_at: datetime
+    access_scope: str = ""
+    token: str = ""
+    invite_link: str = ""
+    created_at: datetime | None = None
+    expires_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 

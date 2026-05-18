@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useOrganization } from "@/contexts/OrganizationContext"
 import { useFolders, useGenerateFolders, useApplyGeneratedFolders, useCreateFolder } from "@/hooks/useFolders"
 import { useNotes, useCreateNote, useUploadNote, useDeleteNote, useUpdateNote, useSuggestFolder } from "@/hooks/useNotes"
+import { useRecentNotes, formatRelativeTime } from "@/hooks/useRecentNotes"
 import { ReactFlow, Handle, Position, type Node, type Edge } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 import type { FolderResponse } from "@/api/folder"
@@ -91,7 +92,8 @@ export default function DashboardPage() {
   const createNote = useCreateNote(); const uploadNote = useUploadNote()
   const deleteNote = useDeleteNote(); const updateNote = useUpdateNote()
   const generateFolders = useGenerateFolders(); const applyFolders = useApplyGeneratedFolders()
-  const createFolder = useCreateFolder(); const suggestFolder = useSuggestFolder()
+  const createFolder = useCreateFolder();   const suggestFolder = useSuggestFolder()
+  const { recentNotes, trackRecentNote } = useRecentNotes(orgId)
 
   const rootFolders = useMemo(() => folders?.filter((f) => !f.parent_id) ?? [], [folders])
   const unassignedNotes = useMemo(() => notes?.filter((n) => !n.folder_id) ?? [], [notes])
@@ -188,6 +190,26 @@ export default function DashboardPage() {
       </div>
       {registered && <Card className="border-green-200 bg-green-50/50"><CardContent className="pt-6"><p className="text-sm text-green-700">Account created successfully. Check your email to verify your address.</p></CardContent></Card>}
 
+      {recentNotes.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recently Opened</h3>
+          <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+            {recentNotes.map((n) => (
+              <Card
+                key={n.note_id}
+                className="shrink-0 w-44 cursor-pointer hover:shadow-md transition-shadow p-3"
+                onClick={() => navigate(`/dashboard/${selectedOrg?.slug}/note/${n.note_id}`)}
+              >
+                <FileText className="h-4 w-4 text-slate-400 mb-1.5" />
+                <p className="text-sm font-medium truncate">{n.title}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{formatRelativeTime(n.opened_at)}</p>
+                <p className="text-[10px] text-muted-foreground/50 truncate mt-0.5">{n.folder_name}</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col flex-1 min-h-0">
 
         {isLoading ? (
@@ -200,7 +222,7 @@ export default function DashboardPage() {
               const isFolder = row.kind === "folder"; const name = isFolder ? row.data.name : row.data.title
               const dateStr = isFolder ? row.data.created_at : row.data.updated_at
               return (
-                <Card key={`${row.kind}-${row.data.id}`} className="cursor-pointer hover:shadow-md transition-shadow p-4 group" onClick={() => { if (isFolder) navigate(`/dashboard/${selectedOrg?.slug}/${row.data.slug}`); else navigate(`/dashboard/${selectedOrg?.slug}/note/${row.data.id}`) }}>
+                <Card key={`${row.kind}-${row.data.id}`} className="cursor-pointer hover:shadow-md transition-shadow p-4 group" onClick={() => { if (isFolder) navigate(`/dashboard/${selectedOrg?.slug}/${row.data.slug}`); else { if (!isFolder) trackRecentNote((row.data as NoteResponse).id); navigate(`/dashboard/${selectedOrg?.slug}/note/${row.data.id}`) } }}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-start gap-3 min-w-0">
                       {isFolder ? <Folder className="h-5 w-5 shrink-0 text-indigo-400 mt-0.5" /> : <FileText className="h-5 w-5 shrink-0 text-slate-400 mt-0.5" />}
@@ -230,7 +252,7 @@ export default function DashboardPage() {
                   const isFolder = row.kind === "folder"; const name = isFolder ? row.data.name : row.data.title
                   const dateStr = isFolder ? row.data.created_at : row.data.updated_at
                   return (
-                    <tr key={`${row.kind}-${row.data.id}`} className="border-b last:border-0 hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => { if (isFolder) navigate(`/dashboard/${selectedOrg?.slug}/${row.data.slug}`); else navigate(`/dashboard/${selectedOrg?.slug}/note/${row.data.id}`) }}>
+                    <tr key={`${row.kind}-${row.data.id}`} className="border-b last:border-0 hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => { if (isFolder) navigate(`/dashboard/${selectedOrg?.slug}/${row.data.slug}`); else { if (!isFolder) trackRecentNote((row.data as NoteResponse).id); navigate(`/dashboard/${selectedOrg?.slug}/note/${row.data.id}`) } }}>
                       <td className="px-4 py-2.5"><div className="flex items-center gap-3 min-w-0">{isFolder ? <Folder className="h-4 w-4 shrink-0 text-indigo-400" /> : <FileText className="h-4 w-4 shrink-0 text-slate-400" />}<span className="text-sm font-medium truncate">{name}</span></div></td>
                       <td className="px-4 py-2.5"><span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{isFolder ? "Folder" : "Note"}</span></td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">{formatDate(dateStr)}</td>

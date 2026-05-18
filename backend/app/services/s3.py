@@ -19,11 +19,13 @@ def _get_s3_client():
         "aws_access_key_id": settings.s3_access_key,
         "aws_secret_access_key": settings.s3_secret_key,
         "region_name": settings.s3_region,
-        "config": BotoConfig(signature_version="s3v4"),
+        "config": BotoConfig(
+            signature_version="s3v4",
+            s3={"addressing_style": "path"} if settings.s3_use_path_style else {},
+        ),
     }
     if settings.s3_endpoint_url:
         kwargs["endpoint_url"] = settings.s3_endpoint_url
-        kwargs["use_path_style"] = settings.s3_use_path_style
     return boto3.client(**kwargs)
 
 
@@ -37,6 +39,12 @@ async def upload_file(
     settings = get_settings()
     key = f"notes/{org_id}/{note_id}/{filename}"
     client = await asyncio.to_thread(_get_s3_client)
+
+    # Ensure bucket exists
+    try:
+        await asyncio.to_thread(client.head_bucket, Bucket=settings.s3_bucket)
+    except Exception:
+        await asyncio.to_thread(client.create_bucket, Bucket=settings.s3_bucket)
 
     try:
         await asyncio.to_thread(

@@ -108,6 +108,17 @@ async def upload_note(
             note.attachment_size = len(file_bytes)
             note.attachment_content_type = content_type
             await db.flush()
+
+            # Also create an attachment record so it shows in the attachments list
+            attachment = NoteAttachment(
+                note_id=note.id,
+                filename=file.filename,
+                s3_key=key,
+                content_type=content_type,
+                size=len(file_bytes),
+            )
+            db.add(attachment)
+            await db.flush()
             await db.refresh(note)
         except S3StorageError as exc:
             import logging

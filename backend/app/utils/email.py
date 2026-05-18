@@ -42,3 +42,25 @@ async def send_password_reset_email(to_email: str, token: str) -> None:
         subject="Reset your password — Open Brain",
         body=f'<p>Click <a href="{link}">here</a> to reset your password. This link expires in 1 hour.</p>',
     )
+
+
+async def send_invitation_email(
+    to_email: str, org_name: str, role: str, token: str, is_registered: bool = False,
+) -> None:
+    subject = f"You've been invited to {org_name} — Open Brain"
+    accept_link = f"{settings.frontend_url}/dashboard/accept-invitation?token={token}"
+
+    if is_registered:
+        body = f"""
+        <p>You have been invited to join <strong>{org_name}</strong> as a <strong>{role}</strong>.</p>
+        <p><a href="{accept_link}">Click here to accept the invitation</a>.</p>
+        """
+    else:
+        register_link = f"{settings.frontend_url}/register?invitation={token}"
+        body = f"""
+        <p>You have been invited to join <strong>{org_name}</strong> as a <strong>{role}</strong>.</p>
+        <p>Create your account to get started:</p>
+        <p><a href="{register_link}">Sign up and accept invitation</a></p>
+        """
+
+    await send_email(to=to_email, subject=subject, body=body)

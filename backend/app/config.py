@@ -220,6 +220,18 @@ class Settings(BaseSettings):
         default="us-east-1",
         description="S3 region (env: S3_REGION)",
     )
+    s3_bucket: str = Field(
+        default="openbrain-attachments",
+        description="S3 bucket name (env: S3_BUCKET)",
+    )
+    s3_use_path_style: bool = Field(
+        default=True,
+        description="Use path-style S3 URLs — required for MinIO (env: S3_USE_PATH_STYLE)",
+    )
+    s3_public_url: str = Field(
+        default="",
+        description="Public base URL for S3 files, e.g. CDN — skips presigned URL if set (env: S3_PUBLIC_URL)",
+    )
 
 
 @lru_cache
