@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_role
+from app.utils.email import send_invitation_email
 from app.config import get_settings
 from app.database import get_db
 from app.models.organization_ai_config import OrganizationAIConfig
@@ -156,13 +157,51 @@ async def create_org_invitation(
             db, org_id, body.email, body.role,
             body.access_scope, user.id,
         )
-        # Store pending folder/note IDs as JSON on the invitation
         if body.access_scope == "selected":
             if body.folder_ids or body.note_ids:
                 inv.pending_folder_ids = json.dumps(body.folder_ids) if body.folder_ids else None
                 inv.pending_note_ids = json.dumps(body.note_ids) if body.note_ids else None
                 await db.flush()
-        return inv
+
+        # Try to send email (non-blocking)
+        import asyncio
+        from sqlalchemy import select
+        org = await get_organization(db, org_id, user)
+        org_name = org["name"] if org else "Organization"
+
+        user_result = await db.execute(
+            select(User).where(User.email == body.email)
+        )
+        existing_user = user_result.scalar_one_or_none()
+        is_registered = existing_user is not None
+
+        # Build the right link for the admin to copy
+        if is_registered:
+            invite_url = f"{get_settings().frontend_url}/dashboard/accept-invitation?token={inv.token}"
+        else:
+            invite_url = f"{get_settings().frontend_url}/register?invitation={inv.token}"
+
+        asyncio.create_task(
+            send_invitation_email(
+                to_email=body.email,
+                org_name=org_name,
+                role=body.role,
+                token=inv.token,
+                is_registered=is_registered,
+            )
+        )
+
+        return {
+            "id": inv.id,
+            "email": inv.email,
+            "role": inv.role,
+            "access_scope": inv.access_scope,
+            "token": inv.token,
+            "invite_link": invite_url,
+            "is_registered": is_registered,
+            "created_at": inv.created_at,
+            "expires_at": inv.expires_at,
+        }
     except InvitationError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 

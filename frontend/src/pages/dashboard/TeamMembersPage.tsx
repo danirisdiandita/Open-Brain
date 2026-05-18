@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   Users, MoreHorizontal, Mail, Shield, Crown, Loader2,
-  UserPlus, Clock, X, Trash2, UserCheck,
+  UserPlus, Clock, X, Trash2, UserCheck, Copy, Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -79,6 +79,8 @@ export default function TeamMembersPage() {
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteRole, setInviteRole] = useState<(typeof ROLES)[number]["value"]>("editor")
   const [inviteScope, setInviteScope] = useState<string>("all")
+  const [inviteLink, setInviteLink] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const [removeConfirm, setRemoveConfirm] = useState<Member | null>(null)
   const [changeRole, setChangeRole] = useState<{ member: Member; role: (typeof ROLES)[number]["value"] } | null>(null)
@@ -86,12 +88,10 @@ export default function TeamMembersPage() {
 
   const inviteMutation = useMutation({
     mutationFn: (data: { email: string; role: string; access_scope: string }) =>
-      api.post(`/organizations/${orgId}/invitations`, data),
-    onSuccess: () => {
+      api.post(`/organizations/${orgId}/invitations`, data).then((r) => r.data),
+    onSuccess: (response: any) => {
       queryClient.invalidateQueries({ queryKey: ["invitations", orgId] })
-      setInviteEmail("")
-      setInviteScope("all")
-      setInviteOpen(false)
+      setInviteLink(response.invite_link || null)
     },
   })
 
@@ -288,15 +288,36 @@ export default function TeamMembersPage() {
       )}
 
       {/* ── Invite dialog ── */}
-      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+      <Dialog open={inviteOpen} onOpenChange={(open) => { setInviteOpen(open); if (!open) { setInviteLink(null); setInviteEmail(""); setInviteScope("all"); setCopied(false) } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Invite Team Member</DialogTitle>
             <DialogDescription>
               Send an invitation to join {selectedOrg?.name ?? "this organization"}.
-              If the email is not registered, they will receive a sign-up link.
             </DialogDescription>
           </DialogHeader>
+
+          {inviteLink ? (
+            <div className="space-y-4">
+              <div className="rounded-2xl border bg-muted/30 p-4">
+                <p className="text-xs text-muted-foreground mb-3">Invitation created. Share this link:</p>
+                <div className="flex items-center gap-2">
+                  <Input value={inviteLink} readOnly className="text-xs font-mono" />
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="h-10 w-10 shrink-0"
+                    onClick={() => { navigator.clipboard.writeText(inviteLink); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+                  >
+                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button variant="ghost" onClick={() => { setInviteOpen(false); setInviteLink(null); setInviteEmail(""); setInviteScope("all"); setCopied(false) }}>Close</Button>
+              </div>
+            </div>
+          ) : (
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="tm-email">Email address</Label>
@@ -366,6 +387,7 @@ export default function TeamMembersPage() {
               </Button>
             </div>
           </div>
+          )}
         </DialogContent>
       </Dialog>
 
