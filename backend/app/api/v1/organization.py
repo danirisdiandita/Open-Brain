@@ -184,15 +184,16 @@ async def create_org_invitation(
                 f"?invitation={raw_token}"
             )
 
-        asyncio.create_task(
-            send_invitation_email(
-                to_email=body.email,
-                org_name=org_name,
-                role=body.role,
-                token=raw_token,
-                is_registered=is_registered,
+        if get_settings().invite_with_email:
+            asyncio.create_task(
+                send_invitation_email(
+                    to_email=body.email,
+                    org_name=org_name,
+                    role=body.role,
+                    token=getattr(inv, "token", raw_token),
+                    is_registered=is_registered,
+                )
             )
-        )
 
         return {
             "id": inv.id,
