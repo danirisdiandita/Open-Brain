@@ -101,6 +101,9 @@ async def accept_invitation(
 ) -> UserOrganization:
     import json
 
+
+    print('accepting invitation', token, user)
+
     from app.services.authorization import grant_folder_access, grant_note_access
 
     invitation = await get_invitation_by_token(db, token)
