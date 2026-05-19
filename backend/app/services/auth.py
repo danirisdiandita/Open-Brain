@@ -27,7 +27,9 @@ async def register_user(
     invitation: str | None = None,
 ) -> User:
     result = await db.execute(select(User).where(User.email == email))
-    if result.scalar_one_or_none() is not None:
+    result_obj = result.scalar_one_or_none() 
+    if result_obj is not None:
+        print("result_obj", result_obj.__dict__)
         raise AuthError("A user with this email already exists")
 
     user = User(
