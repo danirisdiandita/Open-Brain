@@ -171,6 +171,8 @@ async def create_org_invitation(
         existing_user = user_result.scalar_one_or_none()
         is_registered = existing_user is not None
 
+        print('is_registered', is_registered)
+
         if is_registered:
             invite_url = (
                 f"{get_settings().frontend_url}/dashboard/accept-invitation"
