@@ -1,50 +1,70 @@
-import { useCallback, useRef, useState, useEffect, useLayoutEffect } from "react"
-import { useNavigate } from "react-router-dom"
-import { Tree, type NodeRendererProps } from "react-arborist"
-import { Folder, FolderOpen, Plus, Pencil, Trash2, GripVertical, ChevronRight, Loader2, MoreHorizontal } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
+import {
+  useCallback,
+  useRef,
+  useState,
+  useEffect,
+  useLayoutEffect,
+} from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Tree, type NodeRendererProps } from "react-arborist";
+import {
+  Folder,
+  FolderOpen,
+  Plus,
+  Pencil,
+  Trash2,
+  GripVertical,
+  ChevronRight,
+  Loader2,
+  MoreHorizontal,
+  Home,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useOrganization } from "@/contexts/OrganizationContext"
+} from "@/components/ui/dropdown-menu";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   useFolders,
   useCreateFolder,
   useUpdateFolder,
   useDeleteFolder,
-} from "@/hooks/useFolders"
-import { useCurrentFolderPath } from "@/hooks/useSyncOrgFromSlug"
-import type { FolderResponse } from "@/api/folder"
+} from "@/hooks/useFolders";
+import { useCurrentFolderPath } from "@/hooks/useSyncOrgFromSlug";
+import type { FolderResponse } from "@/api/folder";
 
 interface TreeNode {
-  id: string
-  name: string
-  slug: string
-  description?: string
-  order_index: number
-  children?: TreeNode[]
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  order_index: number;
+  children?: TreeNode[];
 }
 
 function slugFromName(name: string) {
-  return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
 }
 
 function buildTree(flat: FolderResponse[]): TreeNode[] {
-  const map = new Map<string, TreeNode>()
-  const roots: TreeNode[] = []
+  const map = new Map<string, TreeNode>();
+  const roots: TreeNode[] = [];
 
   for (const f of flat) {
     map.set(f.id, {
@@ -54,174 +74,196 @@ function buildTree(flat: FolderResponse[]): TreeNode[] {
       description: f.description ?? undefined,
       order_index: f.order_index,
       children: [],
-    })
+    });
   }
 
   for (const f of flat) {
-    const node = map.get(f.id)!
+    const node = map.get(f.id)!;
     if (f.parent_id && map.has(f.parent_id)) {
-      map.get(f.parent_id)!.children!.push(node)
+      map.get(f.parent_id)!.children!.push(node);
     } else {
-      roots.push(node)
+      roots.push(node);
     }
   }
 
-  return roots
+  return roots;
 }
 
-function findNodeBySlugPath(tree: TreeNode[] | undefined, slugs: string[]): TreeNode | null {
-  if (!tree || slugs.length === 0) return null
-  const slug = slugs[0]
+function findNodeBySlugPath(
+  tree: TreeNode[] | undefined,
+  slugs: string[],
+): TreeNode | null {
+  if (!tree || slugs.length === 0) return null;
+  const slug = slugs[0];
   for (const node of tree) {
     if (node.slug === slug) {
-      if (slugs.length === 1) return node
-      return findNodeBySlugPath(node.children, slugs.slice(1))
+      if (slugs.length === 1) return node;
+      return findNodeBySlugPath(node.children, slugs.slice(1));
     }
   }
-  return null
+  return null;
 }
 
 export function FolderTree() {
-  const { selectedOrg } = useOrganization()
-  const orgId = selectedOrg?.id
-  const navigate = useNavigate()
-  const currentPath = useCurrentFolderPath()
+  const { selectedOrg } = useOrganization();
+  const orgId = selectedOrg?.id;
+  const navigate = useNavigate();
+  const currentPath = useCurrentFolderPath();
 
-  const { data: flatFolders, isLoading } = useFolders(orgId)
-  const createFolder = useCreateFolder()
-  const updateFolder = useUpdateFolder()
-  const deleteFolder = useDeleteFolder()
+  const { data: flatFolders, isLoading } = useFolders(orgId);
+  const createFolder = useCreateFolder();
+  const updateFolder = useUpdateFolder();
+  const deleteFolder = useDeleteFolder();
 
-  const treeRef = useRef<any>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [containerHeight, setContainerHeight] = useState(200)
+  const treeRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState(200);
 
   useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
+    const el = containerRef.current;
+    if (!el) return;
     const update = () => {
-      if (el.clientHeight > 0) setContainerHeight(el.clientHeight)
-    }
-    const obs = new ResizeObserver(update)
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [])
+      if (el.clientHeight > 0) setContainerHeight(el.clientHeight);
+    };
+    const obs = new ResizeObserver(update);
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
-  const treeData: TreeNode[] = flatFolders ? buildTree(flatFolders) : []
+  const treeData: TreeNode[] = flatFolders ? buildTree(flatFolders) : [];
 
   useLayoutEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    if (el.clientHeight > 0) setContainerHeight(el.clientHeight)
-  }, [treeData])
+    const el = containerRef.current;
+    if (!el) return;
+    if (el.clientHeight > 0) setContainerHeight(el.clientHeight);
+  }, [treeData]);
 
-  const currentFolder = findNodeBySlugPath(treeData, currentPath)
+  const currentFolder = findNodeBySlugPath(treeData, currentPath);
 
   useEffect(() => {
-    const tree = treeRef.current
-    if (!tree) return
+    const tree = treeRef.current;
+    if (!tree) return;
     if (!currentPath.length) {
-      requestAnimationFrame(() => tree.closeAll())
-      return
+      requestAnimationFrame(() => tree.closeAll());
+      return;
     }
 
-    let lastId: string | null = null
-    let currentTree = treeData
+    let lastId: string | null = null;
+    let currentTree = treeData;
     for (const slug of currentPath) {
-      const node = currentTree.find((n: TreeNode) => n.slug === slug)
-      if (!node) break
-      lastId = node.id
-      tree.open(node.id)
-      currentTree = node.children ?? []
+      const node = currentTree.find((n: TreeNode) => n.slug === slug);
+      if (!node) break;
+      lastId = node.id;
+      tree.open(node.id);
+      currentTree = node.children ?? [];
     }
-    if (lastId) tree.scrollTo(lastId)
-  }, [currentPath, treeData])
+    if (lastId) tree.scrollTo(lastId);
+  }, [currentPath, treeData]);
 
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [createParentId, setCreateParentId] = useState<string | null>(null)
-  const [createName, setCreateName] = useState("")
-  const [createSlug, setCreateSlug] = useState("")
-  const [createDesc, setCreateDesc] = useState("")
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createParentId, setCreateParentId] = useState<string | null>(null);
+  const [createName, setCreateName] = useState("");
+  const [createSlug, setCreateSlug] = useState("");
+  const [createDesc, setCreateDesc] = useState("");
 
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [editNodeId, setEditNodeId] = useState<string | null>(null)
-  const [editName, setEditName] = useState("")
-  const [editSlug, setEditSlug] = useState("")
-  const [editDesc, setEditDesc] = useState("")
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editNodeId, setEditNodeId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editSlug, setEditSlug] = useState("");
+  const [editDesc, setEditDesc] = useState("");
 
   const handleCreate = useCallback(
     ({ parentId }: { parentId: string | null; type?: string }) => {
-      if (!orgId) return
-      setCreateParentId(parentId)
-      setCreateName("")
-      setCreateSlug("")
-      setCreateDesc("")
-      setCreateDialogOpen(true)
-      return { cancelled: true } as any
+      if (!orgId) return;
+      setCreateParentId(parentId);
+      setCreateName("");
+      setCreateSlug("");
+      setCreateDesc("");
+      setCreateDialogOpen(true);
+      return { cancelled: true } as any;
     },
     [orgId],
-  )
+  );
 
   const openEditDialog = (node: TreeNode) => {
-    setEditNodeId(node.id)
-    setEditName(node.name)
-    setEditSlug(node.slug)
-    setEditDesc(node.description ?? "")
-    setEditDialogOpen(true)
-  }
+    setEditNodeId(node.id);
+    setEditName(node.name);
+    setEditSlug(node.slug);
+    setEditDesc(node.description ?? "");
+    setEditDialogOpen(true);
+  };
 
   const submitEdit = () => {
-    if (!orgId || !editNodeId || !editName || !editSlug) return
+    if (!orgId || !editNodeId || !editName || !editSlug) return;
     updateFolder.mutate({
       orgId,
       id: editNodeId,
-      body: { name: editName, slug: editSlug, description: editDesc || undefined },
-    })
-    setEditDialogOpen(false)
-  }
+      body: {
+        name: editName,
+        slug: editSlug,
+        description: editDesc || undefined,
+      },
+    });
+    setEditDialogOpen(false);
+  };
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [deleteNodeId, setDeleteNodeId] = useState<string | null>(null)
-  const [deleteNodeName, setDeleteNodeName] = useState("")
-  const [deleteConfirm, setDeleteConfirm] = useState("")
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteNodeId, setDeleteNodeId] = useState<string | null>(null);
+  const [deleteNodeName, setDeleteNodeName] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState("");
 
   const openDeleteDialog = (node: TreeNode) => {
-    setDeleteNodeId(node.id)
-    setDeleteNodeName(node.name)
-    setDeleteConfirm("")
-    setDeleteDialogOpen(true)
-  }
+    setDeleteNodeId(node.id);
+    setDeleteNodeName(node.name);
+    setDeleteConfirm("");
+    setDeleteDialogOpen(true);
+  };
 
   const confirmDelete = () => {
-    if (!orgId || !deleteNodeId || deleteConfirm !== deleteNodeName) return
-    const flat = flatFolders?.find((f) => f.id === deleteNodeId)
+    if (!orgId || !deleteNodeId || deleteConfirm !== deleteNodeName) return;
+    const flat = flatFolders?.find((f) => f.id === deleteNodeId);
     if (flat && currentFolder?.id === deleteNodeId) {
-      const parentSlugs = currentPath.slice(0, -1)
-      navigate(`/dashboard/${selectedOrg?.slug}/${parentSlugs.join("/")}`.replace(/\/$/, ""), { replace: true })
+      const parentSlugs = currentPath.slice(0, -1);
+      navigate(
+        `/dashboard/${selectedOrg?.slug}/${parentSlugs.join("/")}`.replace(
+          /\/$/,
+          "",
+        ),
+        { replace: true },
+      );
     }
-    deleteFolder.mutate({ orgId, id: deleteNodeId })
-    setDeleteDialogOpen(false)
-  }
+    deleteFolder.mutate({ orgId, id: deleteNodeId });
+    setDeleteDialogOpen(false);
+  };
 
-  const handleDelete = useCallback(
-    (_args: { ids: string[] }) => {
-      // handled via dialog
-    },
-    [],
-  )
+  const handleDelete = useCallback((_args: { ids: string[] }) => {
+    // handled via dialog
+  }, []);
 
   const handleMove = useCallback(
-    ({ dragIds, parentId, index }: { dragIds: string[]; parentId: string | null; index: number }) => {
-      if (!orgId || dragIds.length === 0) return
+    ({
+      dragIds,
+      parentId,
+      index,
+    }: {
+      dragIds: string[];
+      parentId: string | null;
+      index: number;
+    }) => {
+      if (!orgId || dragIds.length === 0) return;
       for (const id of dragIds) {
-        updateFolder.mutate({ orgId, id, body: { parent_id: parentId ?? undefined, order_index: index } })
+        updateFolder.mutate({
+          orgId,
+          id,
+          body: { parent_id: parentId ?? undefined, order_index: index },
+        });
       }
     },
     [orgId, updateFolder],
-  )
+  );
 
   const submitCreate = () => {
-    if (!orgId || !createName || !createSlug) return
+    if (!orgId || !createName || !createSlug) return;
     createFolder.mutate({
       orgId,
       body: {
@@ -230,19 +272,23 @@ export function FolderTree() {
         description: createDesc || undefined,
         parent_id: createParentId ?? undefined,
       },
-    })
-    setCreateDialogOpen(false)
-  }
+    });
+    setCreateDialogOpen(false);
+  };
 
   const handleNavigateToFolder = (node: TreeNode, pathToHere: string[]) => {
-    const slugs = [...pathToHere, node.slug]
-    navigate(`/dashboard/${selectedOrg?.slug}/${slugs.join("/")}`)
-  }
+    const slugs = [...pathToHere, node.slug];
+    navigate(`/dashboard/${selectedOrg?.slug}/${slugs.join("/")}`);
+  };
 
-  const NodeRenderer = ({ node, style, dragHandle }: NodeRendererProps<TreeNode>) => {
-    const data = node.data
-    const nodePath = getNodePath(node)
-    const isCurrent = currentFolder?.id === data.id
+  const NodeRenderer = ({
+    node,
+    style,
+    dragHandle,
+  }: NodeRendererProps<TreeNode>) => {
+    const data = node.data;
+    const nodePath = getNodePath(node);
+    const isCurrent = currentFolder?.id === data.id;
 
     return (
       <div
@@ -254,8 +300,8 @@ export function FolderTree() {
             <ChevronRight
               className={`h-4 w-4 text-muted-foreground transition-transform cursor-pointer ${node.isOpen ? "rotate-90" : ""}`}
               onClick={(e) => {
-                e.stopPropagation()
-                node.toggle()
+                e.stopPropagation();
+                node.toggle();
               }}
             />
           ) : (
@@ -290,17 +336,30 @@ export function FolderTree() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCreate({ parentId: data.id }) }}>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCreate({ parentId: data.id });
+                }}
+              >
                 <Plus className="mr-2 h-3 w-3" />
                 <span>Add subfolder</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(data) }}>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openEditDialog(data);
+                }}
+              >
                 <Pencil className="mr-2 h-3 w-3" />
                 <span>Edit</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
-                onClick={(e) => { e.stopPropagation(); openDeleteDialog(data) }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openDeleteDialog(data);
+                }}
               >
                 <Trash2 className="mr-2 h-3 w-3" />
                 <span>Delete</span>
@@ -316,24 +375,26 @@ export function FolderTree() {
           </div>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   function getNodePath(node: any): string[] {
-    const slugs: string[] = []
-    let current = node
+    const slugs: string[] = [];
+    let current = node;
     while (current?.parent?.data) {
-      slugs.unshift(current.parent.data.slug)
-      current = current.parent
+      slugs.unshift(current.parent.data.slug);
+      current = current.parent;
     }
-    return slugs
+    return slugs;
   }
 
   if (isLoading) {
     return (
       <div className="flex-1 min-h-0 flex flex-col space-y-2">
         <div className="flex items-center justify-between px-2">
-          <span className="text-xs font-medium text-sidebar-foreground/70">Workspaces</span>
+          <span className="text-xs font-medium text-sidebar-foreground/70">
+            Workspaces
+          </span>
         </div>
         <div className="flex-1 min-h-0 space-y-1 px-2">
           <Skeleton className="h-6 w-3/4 !bg-sidebar-accent/30" />
@@ -342,14 +403,16 @@ export function FolderTree() {
           <Skeleton className="h-6 w-1/3 !bg-sidebar-accent/30" />
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <>
       <div className="flex-1 min-h-0 flex flex-col">
         <div className="flex items-center justify-between px-2 shrink-0">
-          <span className="text-xs font-medium text-sidebar-foreground/70">Workspaces</span>
+          <span className="text-xs font-medium text-sidebar-foreground/70">
+            Workspaces
+          </span>
           <Button
             variant="ghost"
             size="icon"
@@ -359,6 +422,13 @@ export function FolderTree() {
             <Plus className="h-3.5 w-3.5" />
           </Button>
         </div>
+        <Link
+          to={`/dashboard/${selectedOrg?.slug}`}
+          className="flex items-center gap-1 h-8 pl-6 pr-2 text-sm text-sidebar-foreground/50 hover:text-sidebar-foreground/80 hover:bg-sidebar-accent/20 rounded-sm transition-colors"
+        >
+          <Home className="h-4 w-4 shrink-0" />
+          <span className="truncate">All Files</span>
+        </Link>
 
         <div className="flex-1 min-h-0" ref={containerRef}>
           {treeData.length > 0 ? (
@@ -391,10 +461,15 @@ export function FolderTree() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Create Folder</DialogTitle>
-            <DialogDescription>Add a new folder to your workspace.</DialogDescription>
+            <DialogDescription>
+              Add a new folder to your workspace.
+            </DialogDescription>
           </DialogHeader>
           <form
-            onSubmit={(e) => { e.preventDefault(); submitCreate() }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitCreate();
+            }}
             className="space-y-4"
           >
             <div className="space-y-2">
@@ -403,8 +478,8 @@ export function FolderTree() {
                 id="ft-name"
                 value={createName}
                 onChange={(e) => {
-                  setCreateName(e.target.value)
-                  setCreateSlug(slugFromName(e.target.value))
+                  setCreateName(e.target.value);
+                  setCreateSlug(slugFromName(e.target.value));
                 }}
                 placeholder="My Folder"
                 required
@@ -431,17 +506,28 @@ export function FolderTree() {
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setCreateDialogOpen(false)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setCreateDialogOpen(false)}
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={!createName || !createSlug || createFolder.isPending}>
-                {createFolder.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+              <Button
+                type="submit"
+                disabled={!createName || !createSlug || createFolder.isPending}
+              >
+                {createFolder.isPending && (
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                )}
                 Create
               </Button>
             </div>
             {createFolder.isError && (
               <p className="text-sm text-destructive">
-                {createFolder.error instanceof Error ? createFolder.error.message : "Failed to create"}
+                {createFolder.error instanceof Error
+                  ? createFolder.error.message
+                  : "Failed to create"}
               </p>
             )}
           </form>
@@ -452,10 +538,15 @@ export function FolderTree() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Folder</DialogTitle>
-            <DialogDescription>Rename or update folder details.</DialogDescription>
+            <DialogDescription>
+              Rename or update folder details.
+            </DialogDescription>
           </DialogHeader>
           <form
-            onSubmit={(e) => { e.preventDefault(); submitEdit() }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitEdit();
+            }}
             className="space-y-4"
           >
             <div className="space-y-2">
@@ -464,9 +555,9 @@ export function FolderTree() {
                 id="edit-name"
                 value={editName}
                 onChange={(e) => {
-                  setEditName(e.target.value)
+                  setEditName(e.target.value);
                   if (editSlug === slugFromName(editName)) {
-                    setEditSlug(slugFromName(e.target.value))
+                    setEditSlug(slugFromName(e.target.value));
                   }
                 }}
                 placeholder="My Folder"
@@ -494,17 +585,28 @@ export function FolderTree() {
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setEditDialogOpen(false)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setEditDialogOpen(false)}
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={!editName || !editSlug || updateFolder.isPending}>
-                {updateFolder.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+              <Button
+                type="submit"
+                disabled={!editName || !editSlug || updateFolder.isPending}
+              >
+                {updateFolder.isPending && (
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                )}
                 Save
               </Button>
             </div>
             {updateFolder.isError && (
               <p className="text-sm text-destructive">
-                {updateFolder.error instanceof Error ? updateFolder.error.message : "Failed to update"}
+                {updateFolder.error instanceof Error
+                  ? updateFolder.error.message
+                  : "Failed to update"}
               </p>
             )}
           </form>
@@ -516,13 +618,16 @@ export function FolderTree() {
           <DialogHeader>
             <DialogTitle>Delete Folder</DialogTitle>
             <DialogDescription>
-              This will permanently delete <strong>&quot;{deleteNodeName}&quot;</strong> and all nested subfolders.
+              This will permanently delete{" "}
+              <strong>&quot;{deleteNodeName}&quot;</strong> and all nested
+              subfolders.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="delete-confirm">
-                Type <span className="font-semibold">{deleteNodeName}</span> to confirm
+                Type <span className="font-semibold">{deleteNodeName}</span> to
+                confirm
               </Label>
               <Input
                 id="delete-confirm"
@@ -532,26 +637,36 @@ export function FolderTree() {
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setDeleteDialogOpen(false)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setDeleteDialogOpen(false)}
+              >
                 Cancel
               </Button>
               <Button
                 variant="destructive"
                 onClick={confirmDelete}
-                disabled={deleteConfirm !== deleteNodeName || deleteFolder.isPending}
+                disabled={
+                  deleteConfirm !== deleteNodeName || deleteFolder.isPending
+                }
               >
-                {deleteFolder.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                {deleteFolder.isPending && (
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                )}
                 Delete
               </Button>
             </div>
             {deleteFolder.isError && (
               <p className="text-sm text-destructive">
-                {deleteFolder.error instanceof Error ? deleteFolder.error.message : "Failed to delete"}
+                {deleteFolder.error instanceof Error
+                  ? deleteFolder.error.message
+                  : "Failed to delete"}
               </p>
             )}
           </div>
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }

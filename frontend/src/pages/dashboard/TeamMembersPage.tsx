@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Card, CardContent } from "@/components/ui/card"
 import { useOrganization } from "@/contexts/OrganizationContext"
+import { useAuth } from "@/contexts/AuthContext"
 import api from "@/api/client"
 
 const ROLES = [
@@ -57,6 +58,7 @@ function RoleBadge({ role }: { role: string }) {
 
 export default function TeamMembersPage() {
   const { selectedOrg } = useOrganization()
+  const { email: userEmail } = useAuth()
   const orgId = selectedOrg?.id
   const queryClient = useQueryClient()
 
@@ -189,7 +191,12 @@ export default function TeamMembersPage() {
                         {(m.full_name || m.email).slice(0, 2).toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{m.full_name || m.email}</p>
+                        <p className="text-sm font-medium truncate">
+                          {m.full_name || m.email}
+                          {userEmail && m.email === userEmail && (
+                            <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">You</span>
+                          )}
+                        </p>
                         <p className="text-xs text-muted-foreground truncate">{m.email}</p>
                       </div>
                     </div>
