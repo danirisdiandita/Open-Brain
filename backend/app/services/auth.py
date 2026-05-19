@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
+from app.services.invitation import InvitationError, accept_invitation
 from app.utils.email import send_password_reset_email, send_verification_email
 from app.utils.security import (
     create_token,
@@ -37,13 +38,15 @@ async def register_user(
         verification_token_expires=datetime.now(timezone.utc) + timedelta(hours=24),
     )
     db.add(user)
+    await db.flush()
 
     if invitation:
-        result = await db.execute(select(User).where(User.invitation_token == invitation))
-        inviter = result.scalar_one_or_none()
-        # do something here 
-
-    await db.flush()
+        try:
+            await accept_invitation(db, invitation, user)
+        except InvitationError:
+            # We ignore invitation errors during registration so a user can always register 
+            # (they'll just be a free user instead of an org member)
+            pass 
 
     await send_verification_email(user.email, user.verification_token)
 

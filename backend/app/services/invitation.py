@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.invitation import OrganizationInvitation
 from app.models.user import User
 from app.models.user_organization import UserOrganization
-from app.utils.tokens import generate_invitation_token, hash_invitation_token
+from app.utils.tokens import generate_invitation_token, hash_invitation_token, verify_invitation_token
 
 
 class InvitationError(Exception):
@@ -88,7 +88,12 @@ async def get_invitation_by_token(
             OrganizationInvitation.expires_at > datetime.now(timezone.utc),
         )
     )
-    return result.scalar_one_or_none()
+    invitation = result.scalar_one_or_none()
+    if invitation is None:
+        return None
+    if not verify_invitation_token(token, invitation.token_hash):
+        return None
+    return invitation
 
 
 async def accept_invitation(
