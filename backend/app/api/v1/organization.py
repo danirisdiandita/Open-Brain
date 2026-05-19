@@ -184,6 +184,7 @@ async def create_org_invitation(
                 f"?invitation={raw_token}"
             )
 
+        print("get_settings().invite_with_email", get_settings().invite_with_email)
         if get_settings().invite_with_email:
             asyncio.create_task(
                 send_invitation_email(
