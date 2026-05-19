@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { createContext, useCallback, useContext, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useMemo, useState, useEffect } from "react"
 
 interface AuthState {
   accessToken: string | null
@@ -29,6 +29,18 @@ function getInitialState(): AuthState {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(getInitialState)
+
+  // Decode JWT to extract email for existing sessions (pre-backfill)
+  useEffect(() => {
+    if (state.email || !state.accessToken) return
+    try {
+      const payload = JSON.parse(atob(state.accessToken.split(".")[1]))
+      if (payload.email) {
+        localStorage.setItem("user_email", payload.email)
+        setState((prev) => ({ ...prev, email: payload.email }))
+      }
+    } catch { /* ignore decode errors */ }
+  }, [])
 
   const setTokens = useCallback(
     (tokens: { access_token: string; refresh_token: string; email?: string }) => {
