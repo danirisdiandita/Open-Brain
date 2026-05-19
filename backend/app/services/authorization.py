@@ -7,7 +7,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user_organization import UserOrganization
 from app.models.access import FolderMemberAccess, NoteMemberAccess
+from app.models.folder import Folder
 from app.models.note import Note
+
+
+async def _get_descendant_folder_ids(
+    db: AsyncSession, folder_id: uuid.UUID,
+) -> list[uuid.UUID]:
+    """Return all descendant folder IDs (children, grandchildren, etc.)."""
+    ids: list[uuid.UUID] = []
+    result = await db.execute(
+        select(Folder.id).where(Folder.parent_id == folder_id)
+    )
+    children = result.scalars().all()
+    for child_id in children:
+        ids.append(child_id)
+        ids.extend(await _get_descendant_folder_ids(db, child_id))
+    return ids
 
 
 async def get_member(
@@ -208,3 +224,23 @@ async def update_access_scope(
     )
     await db.flush()
     return result.rowcount > 0
+
+
+async def list_folder_access_users(
+    db: AsyncSession, folder_id: uuid.UUID,
+) -> list[dict]:
+    result = await db.execute(
+        select(FolderMemberAccess)
+        .where(FolderMemberAccess.folder_id == folder_id)
+    )
+    return [{"user_id": str(r.user_id)} for r in result.scalars().all()]
+
+
+async def list_note_access_users(
+    db: AsyncSession, note_id: uuid.UUID,
+) -> list[dict]:
+    result = await db.execute(
+        select(NoteMemberAccess)
+        .where(NoteMemberAccess.note_id == note_id)
+    )
+    return [{"user_id": str(r.user_id)} for r in result.scalars().all()]

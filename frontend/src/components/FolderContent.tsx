@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   Upload,
   FileUp,
+  Share2,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -38,6 +39,7 @@ import { useInfiniteNotes, useCreateNote, useDeleteNote, useUploadNote } from "@
 import { useRecentNotes } from "@/hooks/useRecentNotes"
 import { useCurrentFolderPath } from "@/hooks/useSyncOrgFromSlug"
 import { FolderModal } from "./FolderModal"
+import { ShareAccessDialog } from "./ShareAccessDialog"
 import type { FolderResponse } from "@/api/folder"
 import type { NoteResponse } from "@/api/note"
 
@@ -164,6 +166,8 @@ export function FolderContent({ folderId }: FolderContentProps) {
     name: string
     kind: "folder" | "note"
   } | null>(null)
+
+  const [shareTarget, setShareTarget] = useState<{ type: "folder"; id: string; name: string } | null>(null)
 
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
@@ -469,6 +473,22 @@ export function FolderContent({ folderId }: FolderContentProps) {
         </h2>
 
         <div className="flex items-center gap-2">
+          {folderId && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setShareTarget({
+                  type: "folder",
+                  id: folderId,
+                  name: currentPath[currentPath.length - 1] || "this folder",
+                })
+              }
+            >
+              <Share2 className="mr-1.5 h-4 w-4" />
+              Share
+            </Button>
+          )}
           <div className="flex items-center rounded-md border">
             <Button
               variant={viewMode === "table" ? "secondary" : "ghost"}
@@ -577,6 +597,12 @@ export function FolderContent({ folderId }: FolderContentProps) {
         open={folderModalOpen}
         onOpenChange={setFolderModalOpen}
         folder={editingFolder as any}
+      />
+
+      <ShareAccessDialog
+        open={shareTarget !== null}
+        onOpenChange={(open) => { if (!open) setShareTarget(null) }}
+        target={shareTarget}
       />
 
       <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>

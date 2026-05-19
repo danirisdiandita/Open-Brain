@@ -19,13 +19,11 @@ from app.schemas.organization import (
     UpdateMemberRoleRequest,
 )
 from app.services.authorization import (
-    grant_folder_access,
-    grant_note_access,
-    list_member_folders,
-    list_member_notes,
-    revoke_folder_access,
-    revoke_note_access,
+    grant_folder_access, grant_note_access,
+    revoke_folder_access, revoke_note_access,
+    list_member_folders, list_member_notes,
     update_access_scope,
+    list_folder_access_users, list_note_access_users,
 )
 from app.services.invitation import (
     InvitationError,
@@ -426,3 +424,27 @@ async def revoke_note_access_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     await revoke_note_access(db, user_id, note_id)
+
+
+# ── Folder / Note Access Users ───────────────────────────
+
+@router.get("/{org_id}/folders/{folder_id}/members")
+async def list_folder_access_members(
+    org_id: uuid.UUID,
+    folder_id: uuid.UUID,
+    _: User = Depends(require_role("admin", "editor")),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = await list_folder_access_users(db, folder_id)
+    return rows
+
+
+@router.get("/{org_id}/notes/{note_id}/members")
+async def list_note_access_members(
+    org_id: uuid.UUID,
+    note_id: uuid.UUID,
+    _: User = Depends(require_role("admin", "editor")),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = await list_note_access_users(db, note_id)
+    return rows

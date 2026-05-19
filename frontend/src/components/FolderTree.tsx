@@ -18,6 +18,7 @@ import {
   Loader2,
   MoreHorizontal,
   Home,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,7 @@ import {
   useDeleteFolder,
 } from "@/hooks/useFolders";
 import { useCurrentFolderPath } from "@/hooks/useSyncOrgFromSlug";
+import { ShareAccessDialog } from "@/components/ShareAccessDialog";
 import type { FolderResponse } from "@/api/folder";
 
 interface TreeNode {
@@ -212,6 +214,8 @@ export function FolderTree() {
   const [deleteNodeName, setDeleteNodeName] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
+  const [shareTarget, setShareTarget] = useState<{ type: "folder"; id: string; name: string } | null>(null);
+
   const openDeleteDialog = (node: TreeNode) => {
     setDeleteNodeId(node.id);
     setDeleteNodeName(node.name);
@@ -353,6 +357,15 @@ export function FolderTree() {
               >
                 <Pencil className="mr-2 h-3 w-3" />
                 <span>Edit</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShareTarget({ type: "folder", id: data.id, name: data.name });
+                }}
+              >
+                <Share2 className="mr-2 h-3 w-3" />
+                <span>Share</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
@@ -667,6 +680,12 @@ export function FolderTree() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ShareAccessDialog
+        open={shareTarget !== null}
+        onOpenChange={(open) => { if (!open) setShareTarget(null) }}
+        target={shareTarget}
+      />
     </>
   );
 }

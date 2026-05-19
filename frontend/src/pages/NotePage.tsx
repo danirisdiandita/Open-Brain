@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { ArrowLeft, Loader2, Save, Paperclip, Plus, X, Download } from "lucide-react"
+import { ArrowLeft, Loader2, Save, Paperclip, Plus, X, Download, Share2 } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useOrganization } from "@/contexts/OrganizationContext"
 import { useNote, useUpdateNote } from "@/hooks/useNotes"
 import { SimpleEditor } from "@/components/tiptap-templates/simple/simple-editor"
+import { ShareAccessDialog } from "@/components/ShareAccessDialog"
 import { useRecentNotes } from "@/hooks/useRecentNotes"
 import api from "@/api/client"
 
@@ -40,6 +41,7 @@ export default function NotePage() {
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
   const [uploading, setUploading] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
 
   const { data: attachments, isLoading: attLoading } = useQuery({
     queryKey: ["attachments", orgId, noteId],
@@ -143,6 +145,10 @@ export default function NotePage() {
             className="text-2xl font-bold border-none shadow-none px-0 h-auto focus-visible:ring-0 !bg-transparent !text-white"
             placeholder="Untitled"
           />
+          <Button variant="outline" size="sm" className="shrink-0" onClick={() => setShareOpen(true)}>
+            <Share2 className="mr-1.5 h-4 w-4" />
+            <span className="hidden sm:inline">Share</span>
+          </Button>
           <Button onClick={handleSave} disabled={updateNote.isPending} size="sm" className="shrink-0">
             {updateNote.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -210,6 +216,12 @@ export default function NotePage() {
           <SimpleEditor key={noteId} content={note.content ?? ""} onChange={setContent} />
         </div>
       </div>
+
+      <ShareAccessDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        target={noteId ? { type: "note", id: noteId, name: note?.title || "this note" } : null}
+      />
     </div>
   )
 }

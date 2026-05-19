@@ -103,6 +103,21 @@ async def create_folder(
     )
     db.add(folder)
     await db.flush()
+
+    # Inherit parent's share grants
+    if parent_id:
+        from app.models.access import FolderMemberAccess
+        result = await db.execute(
+            select(FolderMemberAccess).where(FolderMemberAccess.folder_id == parent_id)
+        )
+        for grant in result.scalars().all():
+            db.add(FolderMemberAccess(
+                organization_id=grant.organization_id,
+                user_id=grant.user_id,
+                folder_id=folder.id,
+                granted_by=grant.granted_by,
+            ))
+
     return folder
 
 async def update_folder(
