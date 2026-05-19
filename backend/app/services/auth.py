@@ -23,6 +23,7 @@ async def register_user(
     email: str,
     password: str,
     full_name: str = "",
+    invitation: str | None = None,
 ) -> User:
     result = await db.execute(select(User).where(User.email == email))
     if result.scalar_one_or_none() is not None:
@@ -36,6 +37,12 @@ async def register_user(
         verification_token_expires=datetime.now(timezone.utc) + timedelta(hours=24),
     )
     db.add(user)
+
+    if invitation:
+        result = await db.execute(select(User).where(User.invitation_token == invitation))
+        inviter = result.scalar_one_or_none()
+        # do something here 
+
     await db.flush()
 
     await send_verification_email(user.email, user.verification_token)

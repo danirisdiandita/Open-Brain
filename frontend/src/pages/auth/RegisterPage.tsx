@@ -14,6 +14,7 @@ const schema = z.object({
   fullName: z.string().min(1, "Name is required").max(128),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Must be at least 8 characters"),
+  invitation: z.string().optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -21,6 +22,9 @@ type FormData = z.infer<typeof schema>
 export default function RegisterPage() {
   const register = useRegister()
   const resend = useResendVerification()
+
+  const params = new URLSearchParams(window.location.search)
+  const invitationToken = params.get("invitation") // this is correct 
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -32,6 +36,7 @@ export default function RegisterPage() {
       email: data.email,
       password: data.password,
       full_name: data.fullName,
+      invitation: data.invitation,
     })
   }
 

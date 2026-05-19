@@ -9,6 +9,7 @@ export interface RegisterPayload {
   email: string
   password: string
   full_name?: string
+  invitation?: string
 }
 
 export interface AuthTokens {
