@@ -100,10 +100,6 @@ async def accept_invitation(
     db: AsyncSession, token: str, user: User,
 ) -> UserOrganization:
     import json
-
-
-    print('accepting invitation', token, user)
-
     from app.services.authorization import grant_folder_access, grant_note_access
 
     invitation = await get_invitation_by_token(db, token)
@@ -112,6 +108,19 @@ async def accept_invitation(
 
     if user.email.lower() != invitation.email.lower():
         raise InvitationError("This invitation is for a different email address")
+
+    # Check if already a member — just return the existing membership
+    existing = await db.execute(
+        select(UserOrganization).where(
+            UserOrganization.user_id == user.id,
+            UserOrganization.organization_id == invitation.organization_id,
+        )
+    )
+    member = existing.scalar_one_or_none()
+    if member:
+        await db.delete(invitation)
+        await db.flush()
+        return member
 
     membership = UserOrganization(
         user_id=user.id,

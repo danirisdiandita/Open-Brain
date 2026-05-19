@@ -203,6 +203,12 @@ class Settings(BaseSettings):
         description="Weaviate API key — leave empty for anonymous access (env: WEAVIATE_API_KEY)",
     )
 
+    # ── Invitations ──────────────────────────────────────
+    invite_with_email: bool = Field(
+        default=True,
+        description="Send email when inviting members (env: INVITE_WITH_EMAIL)",
+    )
+
     # ── S3 / Object Storage ──────────────────────────────
     s3_endpoint_url: str = Field(
         default="http://localhost:9002",

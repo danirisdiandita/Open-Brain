@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { Loader2, CheckCircle, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,18 +11,17 @@ export default function AcceptInvitationPage() {
   const token = searchParams.get("token")
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
   const [message, setMessage] = useState("")
+  const called = useRef(false)
 
   useEffect(() => {
-    if (!token) {
-      setStatus("error")
-      setMessage("No invitation token found.")
-      return
-    }
+    if (!token || called.current) return
+    called.current = true
+
     api.post(`/organizations/invitations/${token}/accept`)
       .then((r) => {
         setStatus("success")
         setMessage(`You've joined the organization as ${r.data.role}.`)
-        setTimeout(() => navigate(`/dashboard`), 2000)
+        setTimeout(() => navigate("/dashboard"), 2000)
       })
       .catch((err) => {
         setStatus("error")
