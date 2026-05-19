@@ -29,7 +29,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     try:
-        user = await register_user(db, body.email, body.password, body.full_name)
+        user = await register_user(db, body.email, body.password, body.full_name, body.invitation)
         return {"message": "Registration successful. Please check your email to verify your account.", "user_id": str(user.id)}
     except AuthError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))

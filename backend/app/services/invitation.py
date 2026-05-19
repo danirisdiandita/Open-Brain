@@ -1,15 +1,15 @@
 """Organization invitation service."""
 
-import secrets
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import select, delete
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.invitation import OrganizationInvitation
 from app.models.user import User
 from app.models.user_organization import UserOrganization
+from app.utils.tokens import generate_invitation_token, hash_invitation_token
 
 
 class InvitationError(Exception):
@@ -23,8 +23,7 @@ async def create_invitation(
     role: str,
     access_scope: str = "all",
     created_by: uuid.UUID | None = None,
-) -> OrganizationInvitation:
-    # Check if already a member
+) -> tuple[OrganizationInvitation, str]:
     result = await db.execute(
         select(User).where(User.email == email)
     )
@@ -39,7 +38,6 @@ async def create_invitation(
         if result2.scalar_one_or_none():
             raise InvitationError("User is already a member of this organization")
 
-    # Check for existing pending invitation
     result3 = await db.execute(
         select(OrganizationInvitation).where(
             OrganizationInvitation.organization_id == org_id,
@@ -50,18 +48,20 @@ async def create_invitation(
     if result3.scalar_one_or_none():
         raise InvitationError("A pending invitation already exists for this email")
 
+    raw_token, token_hash = generate_invitation_token()
+
     invitation = OrganizationInvitation(
         organization_id=org_id,
         email=email,
         role=role,
         access_scope=access_scope,
-        token=secrets.token_urlsafe(32),
+        token_hash=token_hash,
         created_by=created_by or uuid.UUID("00000000-0000-0000-0000-000000000000"),
     )
     db.add(invitation)
     await db.flush()
     await db.refresh(invitation)
-    return invitation
+    return invitation, raw_token
 
 
 async def list_invitations(
@@ -81,9 +81,10 @@ async def list_invitations(
 async def get_invitation_by_token(
     db: AsyncSession, token: str,
 ) -> OrganizationInvitation | None:
+    token_hash = hash_invitation_token(token)
     result = await db.execute(
         select(OrganizationInvitation).where(
-            OrganizationInvitation.token == token,
+            OrganizationInvitation.token_hash == token_hash,
             OrganizationInvitation.expires_at > datetime.now(timezone.utc),
         )
     )
@@ -94,6 +95,7 @@ async def accept_invitation(
     db: AsyncSession, token: str, user: User,
 ) -> UserOrganization:
     import json
+
     from app.services.authorization import grant_folder_access, grant_note_access
 
     invitation = await get_invitation_by_token(db, token)
@@ -111,7 +113,6 @@ async def accept_invitation(
     )
     db.add(membership)
 
-    # Grant pending folder/note access
     if invitation.access_scope == "selected":
         if invitation.pending_folder_ids:
             for fid in json.loads(invitation.pending_folder_ids):

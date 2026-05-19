@@ -1,5 +1,4 @@
 import uuid
-import secrets
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import DateTime, ForeignKey, String, Text, func
@@ -23,8 +22,8 @@ class OrganizationInvitation(Base):
     access_scope: Mapped[str] = mapped_column(String(16), nullable=False, default="all")
     pending_folder_ids: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
     pending_note_ids: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
-    token: Mapped[str] = mapped_column(
-        String(256), unique=True, default=lambda: secrets.token_urlsafe(32)
+    token_hash: Mapped[str] = mapped_column(
+        String(256), unique=True, nullable=False
     )
     created_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
