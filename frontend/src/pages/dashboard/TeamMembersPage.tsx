@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Card, CardContent } from "@/components/ui/card"
 import { useOrganization } from "@/contexts/OrganizationContext"
+import { useFolders } from "@/hooks/useFolders"
 import { useAuth } from "@/contexts/AuthContext"
 import api from "@/api/client"
 
@@ -74,6 +75,8 @@ export default function TeamMembersPage() {
     enabled: !!orgId,
   })
 
+  const { data: folders } = useFolders(orgId)
+
   const currentRole = selectedOrg?.role ?? "viewer"
   const isAdmin = currentRole === "admin"
 
@@ -81,6 +84,7 @@ export default function TeamMembersPage() {
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteRole, setInviteRole] = useState<(typeof ROLES)[number]["value"]>("editor")
   const [inviteScope, setInviteScope] = useState<string>("all")
+  const [inviteFolderIds, setInviteFolderIds] = useState<string[]>([])
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
@@ -89,11 +93,12 @@ export default function TeamMembersPage() {
   const [revokeInvite, setRevokeInvite] = useState<Invitation | null>(null)
 
   const inviteMutation = useMutation({
-    mutationFn: (data: { email: string; role: string; access_scope: string }) =>
+    mutationFn: (data: { email: string; role: string; access_scope: string; folder_ids?: string[] }) =>
       api.post(`/organizations/${orgId}/invitations`, data).then((r) => r.data),
     onSuccess: (response: any) => {
       queryClient.invalidateQueries({ queryKey: ["invitations", orgId] })
       setInviteLink(response.invite_link || null)
+      setInviteFolderIds([])
     },
   })
 
@@ -386,9 +391,57 @@ export default function TeamMembersPage() {
                 ))}
               </div>
             </div>
+            {inviteScope === "selected" && (
+              <div className="space-y-2">
+                <Label>Select Folders</Label>
+                <div className="max-h-[200px] overflow-y-auto rounded-2xl border p-2 space-y-1">
+                  {folders?.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">No folders yet</p>
+                  ) : (
+                    folders?.map((f) => (
+                      <label
+                        key={f.id}
+                        className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/50 cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          className="rounded"
+                          checked={inviteFolderIds.includes(f.id)}
+                          onChange={() => {
+                            setInviteFolderIds((prev) =>
+                              prev.includes(f.id)
+                                ? prev.filter((id) => id !== f.id)
+                                : [...prev, f.id]
+                            )
+                          }}
+                        />
+                        <span className="text-sm truncate">
+                          {f.name}
+                          {f.parent_id && (
+                            <span className="text-[10px] text-muted-foreground ml-1">
+                              in {folders?.find((p) => p.id === f.parent_id)?.name || "..."}
+                            </span>
+                          )}
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={() => setInviteOpen(false)}>Cancel</Button>
-              <Button onClick={() => inviteMutation.mutate({ email: inviteEmail, role: inviteRole, access_scope: inviteScope })} disabled={!inviteEmail || inviteMutation.isPending}>
+              <Button
+                onClick={() =>
+                  inviteMutation.mutate({
+                    email: inviteEmail,
+                    role: inviteRole,
+                    access_scope: inviteScope,
+                    folder_ids: inviteScope === "selected" ? inviteFolderIds : undefined,
+                  })
+                }
+                disabled={!inviteEmail || inviteMutation.isPending}
+              >
                 {inviteMutation.isPending ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
                 Send Invitation
               </Button>

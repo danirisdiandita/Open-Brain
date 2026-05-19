@@ -103,6 +103,8 @@ async def can_access_note(
         return False
     if member.access_scope == "all":
         return True
+    if member.access_scope == "blocked":
+        return False
 
     # Direct note grant
     note_ids = await _get_allowed_note_ids(db, user_id)
