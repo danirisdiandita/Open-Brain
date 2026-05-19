@@ -74,7 +74,6 @@ export function Chatbot() {
         }))
       )
       setViewSessions(false)
-      if (!open) setOpen(true)
     } catch { /* ignore */ }
   }
 

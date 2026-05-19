@@ -70,8 +70,8 @@ async def login_user(
         raise AuthError("Account is deactivated")
 
     return {
-        "access_token": create_token(user.id, "access"),
-        "refresh_token": create_token(user.id, "refresh"),
+        "access_token": create_token(user.id, user.email, "access"),
+        "refresh_token": create_token(user.id, user.email, "refresh"),
         "token_type": "bearer",
     }
 
@@ -100,8 +100,8 @@ async def refresh_access_token(
         raise AuthError("User not found or inactive")
 
     return {
-        "access_token": create_token(user.id, "access"),
-        "refresh_token": create_token(user.id, "refresh"),
+        "access_token": create_token(user.id, user.email, "access"),
+        "refresh_token": create_token(user.id, user.email, "refresh"),
         "token_type": "bearer",
     }
 

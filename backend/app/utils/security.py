@@ -19,7 +19,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_token(user_id: uuid.UUID, token_type: str, expires_delta: timedelta | None = None) -> str:
+def create_token(user_id: uuid.UUID, email: str, token_type: str, expires_delta: timedelta | None = None) -> str:
     if expires_delta is None:
         if token_type == "access":
             expires_delta = timedelta(minutes=settings.access_token_expire_minutes)
@@ -29,6 +29,7 @@ def create_token(user_id: uuid.UUID, token_type: str, expires_delta: timedelta |
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user_id),
+        "email": email,
         "type": token_type,
         "iat": now,
         "exp": now + expires_delta,

@@ -1,10 +1,18 @@
-import { useState, useMemo } from "react"
-import { Link, useLocation } from "react-router-dom"
-import { Brain, Home, Users, Settings, LogOut, Building2, ChevronsUpDown } from "lucide-react"
+import { useState, useMemo } from "react";
+import { Link, useLocation } from "react-router-dom";
+import {
+  Brain,
+  Home,
+  Users,
+  Settings,
+  LogOut,
+  Building2,
+  ChevronsUpDown,
+} from "lucide-react";
 
-import { useLogout } from "@/hooks"
-import { useAuth } from "@/contexts/AuthContext"
-import { useOrganization } from "@/contexts/OrganizationContext"
+import { useLogout } from "@/hooks";
+import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   Sidebar,
   SidebarContent,
@@ -18,29 +26,34 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { OrganizationModal } from "@/components/OrganizationModal"
-import { FolderTree } from "@/components/FolderTree"
+} from "@/components/ui/sidebar";
+import { OrganizationModal } from "@/components/OrganizationModal";
+import { FolderTree } from "@/components/FolderTree";
 
 export function AppSidebar() {
-  const location = useLocation()
-  const logout = useLogout()
-  const { email } = useAuth()
-  const { isMobile, setOpenMobile } = useSidebar()
-  const { selectedOrg } = useOrganization()
-  const [orgModalOpen, setOrgModalOpen] = useState(false)
+  const location = useLocation();
+  const logout = useLogout();
+  const { email } = useAuth();
+  const { isMobile, setOpenMobile } = useSidebar();
+  const { selectedOrg } = useOrganization();
+  const [orgModalOpen, setOrgModalOpen] = useState(false);
 
-  const orgPrefix = selectedOrg ? `/dashboard/${selectedOrg.slug}` : "/dashboard"
+  const orgPrefix = selectedOrg
+    ? `/dashboard/${selectedOrg.slug}`
+    : "/dashboard";
 
-  const items = useMemo(() => [
-    { title: "Dashboard", url: orgPrefix, icon: Home },
-    { title: "Team Members", url: `${orgPrefix}/team-members`, icon: Users },
-    { title: "Settings", url: `${orgPrefix}/settings`, icon: Settings },
-  ], [orgPrefix])
+  const items = useMemo(
+    () => [
+      { title: "Dashboard", url: orgPrefix, icon: Home },
+      { title: "Team Members", url: `${orgPrefix}/team-members`, icon: Users },
+      { title: "Settings", url: `${orgPrefix}/settings`, icon: Settings },
+    ],
+    [orgPrefix],
+  );
 
   const handleNav = () => {
-    if (isMobile) setOpenMobile(false)
-  }
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <>
@@ -55,7 +68,9 @@ export function AppSidebar() {
                   </div>
                   <div className="flex flex-col gap-0.5 leading-none">
                     <span className="font-semibold">OpenBrain</span>
-                    <span className="text-xs text-sidebar-foreground/60">RAG Powered Wiki</span>
+                    <span className="text-xs text-sidebar-foreground/60">
+                      RAG Powered Wiki
+                    </span>
                   </div>
                 </Link>
               </SidebarMenuButton>
@@ -115,7 +130,9 @@ export function AppSidebar() {
         <SidebarFooter>
           {email && (
             <div className="px-3 py-2">
-              <p className="text-[10px] text-sidebar-foreground/50 truncate">{email}</p>
+              <p className="text-[12px] font-bold text-sidebar-foreground/50 truncate">
+                {email}
+              </p>
             </div>
           )}
           <SidebarMenu>
@@ -131,5 +148,5 @@ export function AppSidebar() {
 
       <OrganizationModal open={orgModalOpen} onOpenChange={setOrgModalOpen} />
     </>
-  )
+  );
 }
