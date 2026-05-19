@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider, useAuth } from "@/contexts/AuthContext"
-import { OrganizationProvider } from "@/contexts/OrganizationContext"
 import {
   LoginPage,
   RegisterPage,
@@ -30,7 +29,6 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <AuthProvider>
-      <OrganizationProvider>
         <BrowserRouter>
           <Routes>
           <Route
@@ -95,7 +93,6 @@ export default function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
-      </OrganizationProvider>
     </AuthProvider>
   )
 }

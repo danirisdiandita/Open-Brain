@@ -9,8 +9,8 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: (body: LoginPayload) => authApi.login(body),
-    onSuccess: (data) => {
-      setTokens(data)
+    onSuccess: (data, variables) => {
+      setTokens({ ...data, email: variables.email })
       navigate("/dashboard")
     },
   })

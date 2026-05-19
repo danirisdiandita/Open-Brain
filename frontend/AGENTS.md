@@ -17,6 +17,10 @@ frontend/
 │   │   └── AppSidebar.tsx       # Main sidebar navigation component
 │   ├── contexts/
 │   │   └── AuthContext.tsx      # Auth state provider (tokens, setTokens, logout, isAuthenticated)
+│   │   └── OrganizationContext.tsx  # Re-exports from @/stores/organization
+│   ├── stores/
+│   │   ├── organization.ts      # Zustand store — selected org (persisted to localStorage)
+│   │   └── chatbot.ts           # Zustand store — chatbot open/closed state (persisted)
 │   ├── hooks/
 │   │   ├── index.ts             # Barrel export for all hooks
 │   │   ├── use-mobile.tsx       # Mobile breakpoint detection
@@ -61,8 +65,30 @@ frontend/
 - **`src/pages/auth/`** — authentication pages (login, register, password reset, email verify)
 - **`src/pages/dashboard/`** — authenticated dashboard pages (layout, dashboard)
 - **`src/pages/` (root)** — top-level pages (landing, 404)
+- **`src/stores/`** — zustand stores with persist middleware (organization, chatbot)
 - **`src/components/AppSidebar.tsx`** — sidebar navigation (reused in dashboard layout)
 - **`src/components/ui/`** — shadcn/ui primitives (auto-generated)
+
+### Zustand Stores
+
+Global state uses **zustand** with `persist` middleware (automatically syncs to localStorage).
+
+| Store | File | State |
+|-------|------|-------|
+| `useOrganization` | `stores/organization.ts` | `selectedOrg`, `selectOrg()` |
+| `useChatOpen` | `stores/chatbot.ts` | `open`, `setOpen()` |
+
+**Pattern:**  
+```ts
+export const useStore = create<Store>()(
+  persist(
+    (set) => ({ ... }),
+    { name: "store-key" },
+  ),
+)
+```
+
+Re-export `useOrganization` from `contexts/OrganizationContext.tsx` for backward compatibility — all existing imports continue to work.
 
 ### Naming
 
@@ -111,7 +137,15 @@ npm run dev
 | `/forgot-password` | Any | ForgotPasswordPage |
 | `/reset-password?token=...` | Any | ResetPasswordPage |
 | `/verify-email?token=...` | Any | VerifyEmailPage |
-| `/dashboard` | Protected | DashboardLayout > DashboardPage |
+| `/dashboard` | Protected | OnboardingGuard → redirects to persisted org |
+| `/dashboard/accept-invitation?token=...` | Protected | AcceptInvitationPage |
+| `/dashboard/:orgSlug` | Protected | DashboardLayout > DashboardPage |
+| `/dashboard/:orgSlug/flow` | Protected | WorkspaceFlowPage |
+| `/dashboard/:orgSlug/uncategorized` | Protected | UncategorizedPage |
+| `/dashboard/:orgSlug/team-members` | Protected | TeamMembersPage |
+| `/dashboard/:orgSlug/settings` | Protected | SettingsPage |
+| `/dashboard/:orgSlug/note/:noteId` | Protected | NotePage |
+| `/dashboard/:orgSlug/*` | Protected | FolderPage (folder path) |
 | `*` | Any | NotFoundPage (404) |
 
 Route guards:
@@ -180,6 +214,7 @@ Components land in `src/components/ui/` and import from `@/lib/utils` for `cn()`
 | Tailwind CSS 3 | Utility-first styling |
 | shadcn/ui | Headless component primitives |
 | TanStack Query (React Query) | Server state + async mutations |
+| Zustand | Client-side state with persistence |
 | React Router DOM 7 | Client-side routing |
 | Axios | HTTP client with interceptors |
 | React Hook Form + Zod | Form validation |

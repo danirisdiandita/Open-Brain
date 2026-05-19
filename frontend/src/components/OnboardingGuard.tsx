@@ -15,7 +15,7 @@ function slugFromName(name: string) {
 
 export function OnboardingGuard() {
   const { data: orgs, isLoading } = useOrganizations()
-  const { selectOrg } = useOrganization()
+  const { selectOrg, selectedOrg } = useOrganization()
   const navigate = useNavigate()
   const createOrg = useCreateOrganization()
 
@@ -32,7 +32,8 @@ export function OnboardingGuard() {
   }
 
   if (orgs && orgs.length > 0) {
-    return <Navigate to={`/dashboard/${orgs[0].slug}`} replace />
+    const slug = selectedOrg?.slug || orgs[0].slug
+    return <Navigate to={`/dashboard/${slug}`} replace />
   }
 
   return (

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { MessageCircle, X, Send, Loader2, Sparkles, ExternalLink, Plus, Trash2, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useOrganization } from "@/contexts/OrganizationContext"
+import { useChatOpen } from "@/stores/chatbot"
 import api from "@/api/client"
 
 interface Message {
@@ -23,7 +24,7 @@ export function Chatbot() {
   const navigate = useNavigate()
   const orgId = selectedOrg?.id
 
-  const [open, setOpen] = useState(false)
+  const { open, setOpen } = useChatOpen()
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])

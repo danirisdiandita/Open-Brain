@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom"
 import { Brain, Home, Users, Settings, LogOut, Building2, ChevronsUpDown } from "lucide-react"
 
 import { useLogout } from "@/hooks"
+import { useAuth } from "@/contexts/AuthContext"
 import { useOrganization } from "@/contexts/OrganizationContext"
 import {
   Sidebar,
@@ -24,6 +25,7 @@ import { FolderTree } from "@/components/FolderTree"
 export function AppSidebar() {
   const location = useLocation()
   const logout = useLogout()
+  const { email } = useAuth()
   const { isMobile, setOpenMobile } = useSidebar()
   const { selectedOrg } = useOrganization()
   const [orgModalOpen, setOrgModalOpen] = useState(false)
@@ -111,6 +113,11 @@ export function AppSidebar() {
         </SidebarContent>
 
         <SidebarFooter>
+          {email && (
+            <div className="px-3 py-2">
+              <p className="text-[10px] text-sidebar-foreground/50 truncate">{email}</p>
+            </div>
+          )}
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton onClick={logout} tooltip="Sign Out">
