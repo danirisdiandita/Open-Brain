@@ -6,6 +6,7 @@ from app.models.organization import Organization
 from app.models.organization_ai_config import OrganizationAIConfig
 from app.models.user import User
 from app.models.user_organization import UserOrganization
+from app.models.apikey import ApiKey
 
 __all__ = [
     "Base",
@@ -16,4 +17,5 @@ __all__ = [
     "Note",
     "Chunk",
     "OrganizationAIConfig",
+    "ApiKey",
 ]

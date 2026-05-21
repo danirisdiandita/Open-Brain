@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react"
-import { RotateCcw, Loader2, Check, AlertCircle } from "lucide-react"
+import { RotateCcw, Loader2, Check, AlertCircle, Plus, Copy, Key, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useOrganization } from "@/contexts/OrganizationContext"
 import { useAIConfig, useUpdateAIConfig } from "@/hooks/useAIConfig"
+import { useApiKeys, useCreateApiKey, useRevokeApiKey } from "@/hooks/useApiKeys"
 import type { AIConfigUpdate } from "@/api/organization"
+import type { ApiKeyCreated } from "@/api/apikey"
 
 const PROMPT_FIELDS = [
   { key: "folder_suggestion_system", label: "Folder Suggestion", description: "System prompt for suggesting folders for notes" },
@@ -37,6 +40,15 @@ export default function SettingsPage() {
 
   const [form, setForm] = useState<Record<string, string | number>>({})
   const [saved, setSaved] = useState(false)
+
+  const [showCreateKey, setShowCreateKey] = useState(false)
+  const [newKeyName, setNewKeyName] = useState("")
+  const [createdKey, setCreatedKey] = useState<ApiKeyCreated | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const { data: apiKeys, isLoading: keysLoading } = useApiKeys(orgId)
+  const createKeyMut = useCreateApiKey()
+  const revokeKeyMut = useRevokeApiKey()
 
   useEffect(() => {
     if (config) {
@@ -243,6 +255,148 @@ export default function SettingsPage() {
           )}
         </>
       ) : null}
+
+      {/* ── API Keys ── */}
+      {currentRole === "admin" && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">API Keys</CardTitle>
+              <Button size="sm" onClick={() => { setShowCreateKey(true); setCreatedKey(null); setNewKeyName(""); setCopied(false) }}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                Create New Key
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {keysLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : apiKeys && apiKeys.length > 0 ? (
+              <div className="space-y-2">
+                {apiKeys.map((key) => (
+                  <div key={key.id} className="flex items-center justify-between rounded-lg border px-3 py-2.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Key className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{key.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Created {new Date(key.created_at).toLocaleDateString()}
+                          {key.last_used_at ? ` · Last used ${new Date(key.last_used_at).toLocaleDateString()}` : " · Never used"}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => {
+                        if (window.confirm(`Revoke "${key.name}"? This cannot be undone.`)) {
+                          revokeKeyMut.mutate({ orgId: orgId!, keyId: key.id })
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No API keys yet. Create one to get started.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Create API Key Dialog ── */}
+      <Dialog open={showCreateKey} onOpenChange={setShowCreateKey}>
+        <DialogContent className="sm:max-w-md">
+          {createdKey ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>API Key Created</DialogTitle>
+                <DialogDescription>
+                  Copy this key now. You won&apos;t be able to see it again.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3">
+                <code className="flex-1 font-mono text-xs break-all select-all">
+                  {createdKey.raw_token}
+                </code>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => {
+                    navigator.clipboard.writeText(createdKey.raw_token)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  }}
+                >
+                  <Copy className="mr-1 h-3.5 w-3.5" />
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={() => { setShowCreateKey(false); setCreatedKey(null) }}>
+                  Done
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Create New API Key</DialogTitle>
+                <DialogDescription>
+                  Give your key a name so you can identify it later.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="key-name">Key Name</Label>
+                  <Input
+                    id="key-name"
+                    placeholder="e.g. Slack Bot, Zapier"
+                    value={newKeyName}
+                    onChange={(e) => setNewKeyName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newKeyName.trim()) {
+                        createKeyMut.mutate(
+                          { orgId: orgId!, name: newKeyName.trim() },
+                          { onSuccess: (data) => setCreatedKey(data) },
+                        )
+                      }
+                    }}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setShowCreateKey(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      createKeyMut.mutate(
+                        { orgId: orgId!, name: newKeyName.trim() || "Default" },
+                        { onSuccess: (data) => setCreatedKey(data) },
+                      )
+                    }}
+                    disabled={createKeyMut.isPending}
+                  >
+                    {createKeyMut.isPending ? (
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    ) : null}
+                    Create
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

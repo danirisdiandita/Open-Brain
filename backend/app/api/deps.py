@@ -6,8 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.user import User
+from app.models.apikey import ApiKey
 from app.utils.security import decode_token
 from app.services.member import get_member_role
+from app.services.apikey import ApiKeyError, authenticate_api_key
 
 security_scheme = HTTPBearer(auto_error=False)
 
@@ -60,3 +62,18 @@ def require_role(*roles: str):
         return user
 
     return checker
+
+
+async def get_api_key(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> ApiKey:
+    if credentials is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    try:
+        key = await authenticate_api_key(db, credentials.credentials)
+    except ApiKeyError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
+
+    return key

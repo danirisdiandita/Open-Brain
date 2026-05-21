@@ -209,6 +209,12 @@ class Settings(BaseSettings):
         description="Send email when inviting members (env: INVITE_WITH_EMAIL)",
     )
 
+    # ── API Keys ───────────────────────────────────────────
+    api_key_token_length: int = Field(
+        default=48,
+        description="Byte length of raw API key tokens (env: API_KEY_TOKEN_LENGTH)",
+    )
+
     # ── S3 / Object Storage ──────────────────────────────
     s3_endpoint_url: str = Field(
         default="http://localhost:9002",
