@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react"
-import { RotateCcw, Loader2, Check, AlertCircle, Plus, Copy, Key, Trash2 } from "lucide-react"
+import { RotateCcw, Loader2, Check, AlertCircle, Plus, Copy, Key, Trash2, Brain, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useOrganization } from "@/contexts/OrganizationContext"
 import { useAIConfig, useUpdateAIConfig } from "@/hooks/useAIConfig"
@@ -117,200 +118,212 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Configure AI behavior for {selectedOrg?.name ?? "this organization"}
+          Manage {selectedOrg?.name ?? "this organization"}
         </p>
       </div>
 
-      {isLoading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
-        </div>
-      ) : config ? (
-        <>
-          {/* ── AI Model & Temperature ── */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">AI Model</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="ai-model">Model</Label>
-                <Input
-                  id="ai-model"
-                  value={String(form.ai_model ?? "")}
-                  onChange={(e) => handleChange("ai_model", e.target.value)}
-                  placeholder="gpt-4.1-mini"
-                  disabled={!canEdit}
-                />
-                {!config.ai_model.is_default && (
-                  <p className="text-xs text-muted-foreground">
-                    Default: gpt-4.1-mini
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="temperature">Temperature ({form.temperature})</Label>
-                <Input
-                  id="temperature"
-                  type="number"
-                  min={0}
-                  max={2}
-                  step={0.1}
-                  value={form.temperature ?? ""}
-                  onChange={(e) => handleChange("temperature", parseFloat(e.target.value) || 0)}
-                  disabled={!canEdit}
-                />
-                {!config.temperature.is_default && (
-                  <p className="text-xs text-muted-foreground">
-                    Default: 0.3
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* ── System Prompts ── */}
-          {PROMPT_FIELDS.map(({ key, label, description }) => (
-            <Card key={key}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base">{label}</CardTitle>
-                    <p className="text-xs text-muted-foreground">{description}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {!config[key].is_default && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
-                        Custom
-                      </span>
-                    )}
-                    {canEdit && !config[key].is_default && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => handleReset(key)}
-                        title="Reset to default"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={String(form[key] ?? "")}
-                  onChange={(e) => handleChange(key, e.target.value)}
-                  className="font-mono text-xs min-h-[120px]"
-                  disabled={!canEdit}
-                  placeholder={String(config[key].value ?? "")}
-                />
-              </CardContent>
-            </Card>
-          ))}
-
-          {/* ── Template Variables Reference ── */}
-          <Card className="border-dashed">
-            <CardHeader>
-              <CardTitle className="text-sm">Available Template Variables</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {TEMPLATE_VARS.map((v) => (
-                  <div key={v.name} className="flex items-baseline gap-2 text-xs">
-                    <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{v.name}</code>
-                    <span className="text-muted-foreground">{v.desc}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* ── Save Bar ── */}
-          {canEdit && (
-            <div className="flex items-center gap-3">
-              <Button onClick={handleSave} disabled={!isDirty || updateMutation.isPending}>
-                {updateMutation.isPending ? (
-                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                ) : saved ? (
-                  <Check className="mr-2 h-3.5 w-3.5" />
-                ) : null}
-                {saved ? "Saved" : "Save Changes"}
-              </Button>
-              {isDirty && (
-                <span className="text-xs text-muted-foreground">Unsaved changes</span>
-              )}
-              {updateMutation.isError && (
-                <span className="text-xs text-destructive flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  {updateMutation.error instanceof Error ? updateMutation.error.message : "Failed to save"}
-                </span>
-              )}
-            </div>
+      <Tabs defaultValue="ai" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="ai">
+            <Brain className="mr-2 h-4 w-4" />
+            AI Configuration
+          </TabsTrigger>
+          {currentRole === "admin" && (
+            <TabsTrigger value="api-keys">
+              <KeyRound className="mr-2 h-4 w-4" />
+              API Keys
+            </TabsTrigger>
           )}
-        </>
-      ) : null}
+        </TabsList>
 
-      {/* ── API Keys ── */}
-      {currentRole === "admin" && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">API Keys</CardTitle>
-              <Button size="sm" onClick={() => { setShowCreateKey(true); setCreatedKey(null); setNewKeyName(""); setCopied(false) }}>
-                <Plus className="mr-1.5 h-4 w-4" />
-                Create New Key
-              </Button>
+        <TabsContent value="ai" className="space-y-6">
+          {isLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
             </div>
-          </CardHeader>
-          <CardContent>
-            {keysLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ) : apiKeys && apiKeys.length > 0 ? (
-              <div className="space-y-2">
-                {apiKeys.map((key) => (
-                  <div key={key.id} className="flex items-center justify-between rounded-lg border px-3 py-2.5">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Key className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{key.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Created {new Date(key.created_at).toLocaleDateString()}
-                          {key.last_used_at ? ` · Last used ${new Date(key.last_used_at).toLocaleDateString()}` : " · Never used"}
-                        </p>
+          ) : config ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">AI Model</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="ai-model">Model</Label>
+                    <Input
+                      id="ai-model"
+                      value={String(form.ai_model ?? "")}
+                      onChange={(e) => handleChange("ai_model", e.target.value)}
+                      placeholder="gpt-4.1-mini"
+                      disabled={!canEdit}
+                    />
+                    {!config.ai_model.is_default && (
+                      <p className="text-xs text-muted-foreground">
+                        Default: gpt-4.1-mini
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="temperature">Temperature ({form.temperature})</Label>
+                    <Input
+                      id="temperature"
+                      type="number"
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      value={form.temperature ?? ""}
+                      onChange={(e) => handleChange("temperature", parseFloat(e.target.value) || 0)}
+                      disabled={!canEdit}
+                    />
+                    {!config.temperature.is_default && (
+                      <p className="text-xs text-muted-foreground">
+                        Default: 0.3
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {PROMPT_FIELDS.map(({ key, label, description }) => (
+                <Card key={key}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-base">{label}</CardTitle>
+                        <p className="text-xs text-muted-foreground">{description}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!config[key].is_default && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                            Custom
+                          </span>
+                        )}
+                        {canEdit && !config[key].is_default && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => handleReset(key)}
+                            title="Reset to default"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Button>
+                        )}
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => {
-                        if (window.confirm(`Revoke "${key.name}"? This cannot be undone.`)) {
-                          revokeKeyMut.mutate({ orgId: orgId!, keyId: key.id })
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      value={String(form[key] ?? "")}
+                      onChange={(e) => handleChange(key, e.target.value)}
+                      className="font-mono text-xs min-h-[120px]"
+                      disabled={!canEdit}
+                      placeholder={String(config[key].value ?? "")}
+                    />
+                  </CardContent>
+                </Card>
+              ))}
+
+              <Card className="border-dashed">
+                <CardHeader>
+                  <CardTitle className="text-sm">Available Template Variables</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {TEMPLATE_VARS.map((v) => (
+                      <div key={v.name} className="flex items-baseline gap-2 text-xs">
+                        <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{v.name}</code>
+                        <span className="text-muted-foreground">{v.desc}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </CardContent>
+              </Card>
+
+              {canEdit && (
+                <div className="flex items-center gap-3">
+                  <Button onClick={handleSave} disabled={!isDirty || updateMutation.isPending}>
+                    {updateMutation.isPending ? (
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    ) : saved ? (
+                      <Check className="mr-2 h-3.5 w-3.5" />
+                    ) : null}
+                    {saved ? "Saved" : "Save Changes"}
+                  </Button>
+                  {isDirty && (
+                    <span className="text-xs text-muted-foreground">Unsaved changes</span>
+                  )}
+                  {updateMutation.isError && (
+                    <span className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {updateMutation.error instanceof Error ? updateMutation.error.message : "Failed to save"}
+                    </span>
+                  )}
+                </div>
+              )}
+            </>
+          ) : null}
+        </TabsContent>
+
+        <TabsContent value="api-keys" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">API Keys</CardTitle>
+                <Button size="sm" onClick={() => { setShowCreateKey(true); setCreatedKey(null); setNewKeyName(""); setCopied(false) }}>
+                  <Plus className="mr-1.5 h-4 w-4" />
+                  Create New Key
+                </Button>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                No API keys yet. Create one to get started.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+            </CardHeader>
+            <CardContent>
+              {keysLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : apiKeys && apiKeys.length > 0 ? (
+                <div className="space-y-2">
+                  {apiKeys.map((key) => (
+                    <div key={key.id} className="flex items-center justify-between rounded-lg border px-3 py-2.5">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Key className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{key.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Created {new Date(key.created_at).toLocaleDateString()}
+                            {key.last_used_at ? ` · Last used ${new Date(key.last_used_at).toLocaleDateString()}` : " · Never used"}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => {
+                          if (window.confirm(`Revoke "${key.name}"? This cannot be undone.`)) {
+                            revokeKeyMut.mutate({ orgId: orgId!, keyId: key.id })
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  No API keys yet. Create one to get started.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* ── Create API Key Dialog ── */}
       <Dialog open={showCreateKey} onOpenChange={setShowCreateKey}>
