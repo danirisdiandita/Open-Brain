@@ -51,7 +51,7 @@ export default function DashboardLayout() {
               {names.map(({ name, resolved }, i) => (
                 <BreadcrumbItem key={i}>
                   <BreadcrumbSeparator />
-                  {i === names.length - 1 ? (
+                  {i === names.length - 1 || currentPath[i] === "note" ? (
                     <BreadcrumbPage>
                       {resolved ? name : isLoading ? <Skeleton className="h-4 w-20 inline-block" /> : name}
                     </BreadcrumbPage>

@@ -59,14 +59,6 @@ export default function App() {
             }
           />
           <Route
-            path="/dashboard/:orgSlug/note/:noteId"
-            element={
-              <ProtectedRoute>
-                <NotePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/dashboard/accept-invitation"
             element={
               <ProtectedRoute>
@@ -87,6 +79,7 @@ export default function App() {
             <Route path="uncategorized" element={<UncategorizedPage />} />
             <Route path="team-members" element={<TeamMembersPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="note/:noteId" element={<NotePage />} />
             <Route path="*" element={<FolderPage />} />
           </Route>
           <Route path="/" element={<LandingPage />} />

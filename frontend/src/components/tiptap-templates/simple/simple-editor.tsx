@@ -1,88 +1,196 @@
-"use client"
+"use client";
 
-import { useEffect, useRef, useState } from "react"
-import { EditorContent, EditorContext, useEditor } from "@tiptap/react"
+import { useEffect, useRef, useState, useCallback } from "react";
+import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 
 // --- Tiptap Core Extensions ---
-import { StarterKit } from "@tiptap/starter-kit"
-import { Image } from "@tiptap/extension-image"
-import { TaskItem, TaskList } from "@tiptap/extension-list"
-import { TextAlign } from "@tiptap/extension-text-align"
-import { Typography } from "@tiptap/extension-typography"
-import { Highlight } from "@tiptap/extension-highlight"
-import { Subscript } from "@tiptap/extension-subscript"
-import { Superscript } from "@tiptap/extension-superscript"
-import { Selection } from "@tiptap/extensions"
+import { StarterKit } from "@tiptap/starter-kit";
+import { Image } from "@tiptap/extension-image";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
+import { TextAlign } from "@tiptap/extension-text-align";
+import { Typography } from "@tiptap/extension-typography";
+import { Highlight } from "@tiptap/extension-highlight";
+import { Subscript } from "@tiptap/extension-subscript";
+import { Superscript } from "@tiptap/extension-superscript";
+import { Selection } from "@tiptap/extensions";
 
 // --- UI Primitives ---
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { Spacer } from "@/components/tiptap-ui-primitive/spacer"
+import { Button } from "@/components/tiptap-ui-primitive/button";
+import { Spacer } from "@/components/tiptap-ui-primitive/spacer";
 import {
   Toolbar,
   ToolbarGroup,
   ToolbarSeparator,
-} from "@/components/tiptap-ui-primitive/toolbar"
+} from "@/components/tiptap-ui-primitive/toolbar";
 
 // --- Tiptap Node ---
-import { ImageUploadNode } from "@/components/tiptap-node/image-upload-node/image-upload-node-extension"
-import { HorizontalRule } from "@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension"
-import "@/components/tiptap-node/blockquote-node/blockquote-node.scss"
-import "@/components/tiptap-node/code-block-node/code-block-node.scss"
-import "@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node.scss"
-import "@/components/tiptap-node/list-node/list-node.scss"
-import "@/components/tiptap-node/image-node/image-node.scss"
-import "@/components/tiptap-node/heading-node/heading-node.scss"
-import "@/components/tiptap-node/paragraph-node/paragraph-node.scss"
+import { ImageUploadNode } from "@/components/tiptap-node/image-upload-node/image-upload-node-extension";
+import { HorizontalRule } from "@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension";
+import "@/components/tiptap-node/blockquote-node/blockquote-node.scss";
+import "@/components/tiptap-node/code-block-node/code-block-node.scss";
+import "@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node.scss";
+import "@/components/tiptap-node/list-node/list-node.scss";
+import "@/components/tiptap-node/image-node/image-node.scss";
+import "@/components/tiptap-node/heading-node/heading-node.scss";
+import "@/components/tiptap-node/paragraph-node/paragraph-node.scss";
 
 // --- Tiptap UI ---
-import { HeadingDropdownMenu } from "@/components/tiptap-ui/heading-dropdown-menu"
-import { ImageUploadButton } from "@/components/tiptap-ui/image-upload-button"
-import { ListDropdownMenu } from "@/components/tiptap-ui/list-dropdown-menu"
-import { BlockquoteButton } from "@/components/tiptap-ui/blockquote-button"
-import { CodeBlockButton } from "@/components/tiptap-ui/code-block-button"
+import { HeadingDropdownMenu } from "@/components/tiptap-ui/heading-dropdown-menu";
+import {
+  ImageUploadButton,
+  useImageUpload,
+} from "@/components/tiptap-ui/image-upload-button";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/tiptap-ui-primitive/popover";
+import { ListDropdownMenu } from "@/components/tiptap-ui/list-dropdown-menu";
+import { BlockquoteButton } from "@/components/tiptap-ui/blockquote-button";
+import { CodeBlockButton } from "@/components/tiptap-ui/code-block-button";
 import {
   ColorHighlightPopover,
   ColorHighlightPopoverContent,
   ColorHighlightPopoverButton,
-} from "@/components/tiptap-ui/color-highlight-popover"
+} from "@/components/tiptap-ui/color-highlight-popover";
 import {
   LinkPopover,
   LinkContent,
   LinkButton,
-} from "@/components/tiptap-ui/link-popover"
-import { MarkButton } from "@/components/tiptap-ui/mark-button"
-import { TextAlignButton } from "@/components/tiptap-ui/text-align-button"
-import { UndoRedoButton } from "@/components/tiptap-ui/undo-redo-button"
+} from "@/components/tiptap-ui/link-popover";
+import { MarkButton } from "@/components/tiptap-ui/mark-button";
+import { TextAlignButton } from "@/components/tiptap-ui/text-align-button";
+import { UndoRedoButton } from "@/components/tiptap-ui/undo-redo-button";
 
 // --- Icons ---
-import { ArrowLeftIcon } from "@/components/tiptap-icons/arrow-left-icon"
-import { HighlighterIcon } from "@/components/tiptap-icons/highlighter-icon"
-import { LinkIcon } from "@/components/tiptap-icons/link-icon"
+import { ArrowLeftIcon } from "@/components/tiptap-icons/arrow-left-icon";
+import { HighlighterIcon } from "@/components/tiptap-icons/highlighter-icon";
+import { LinkIcon } from "@/components/tiptap-icons/link-icon";
 
 // --- Hooks ---
-import { useIsBreakpoint } from "@/hooks/use-is-breakpoint"
-import { useWindowSize } from "@/hooks/use-window-size"
-import { useCursorVisibility } from "@/hooks/use-cursor-visibility"
+import { useIsBreakpoint } from "@/hooks/use-is-breakpoint";
+import { useWindowSize } from "@/hooks/use-window-size";
+import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
 
 // --- Components ---
-import { ThemeToggle } from "@/components/tiptap-templates/simple/theme-toggle"
+import { ThemeToggle } from "@/components/tiptap-templates/simple/theme-toggle";
 
 // --- Lib ---
-import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils"
+import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
 
 // --- Styles ---
-import "@/components/tiptap-templates/simple/simple-editor.scss"
+import "@/components/tiptap-templates/simple/simple-editor.scss";
 
-import content from "@/components/tiptap-templates/simple/data/content.json"
+import content from "@/components/tiptap-templates/simple/data/content.json";
+
+function ImageAddPopover({
+  text,
+  imageAttachments,
+  fetchAttachmentUrl,
+  onInsert,
+}: {
+  text?: string;
+  imageAttachments?: { id: string; filename: string }[];
+  fetchAttachmentUrl?: (id: string) => Promise<string>;
+  onInsert?: (url: string, filename: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const { handleImage, canInsert, isVisible, Icon, label } = useImageUpload({});
+
+  if (!isVisible) return null;
+
+  const handleInsertFromAttachment = async (att: {
+    id: string;
+    filename: string;
+  }) => {
+    if (!fetchAttachmentUrl || !onInsert) return;
+    setLoadingId(att.id);
+    try {
+      const url = await fetchAttachmentUrl(att.id);
+      onInsert(url, att.filename);
+      setOpen(false);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={!canInsert}
+          tooltip={label}
+        >
+          <Icon className="tiptap-button-icon" />
+          {text && <span className="tiptap-button-text">{text}</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0 bg-background border shadow-md rounded-lg" align="start">
+        <div className="p-2 border-b">
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full justify-start text-sm"
+            onClick={() => {
+              handleImage();
+              setOpen(false);
+            }}
+          >
+            <Icon className="tiptap-button-icon mr-2 h-4 w-4" />
+            Upload from device
+          </Button>
+        </div>
+        {imageAttachments && imageAttachments.length > 0 ? (
+          <div className="p-2">
+            <p className="text-xs text-muted-foreground mb-2 px-2">
+              From attachments
+            </p>
+            <div className="space-y-1 max-h-48 overflow-y-auto">
+              {imageAttachments.map((att) => (
+                <button
+                  key={att.id}
+                  disabled={loadingId === att.id}
+                  className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors truncate flex items-center gap-2 disabled:opacity-50"
+                  onClick={() => handleInsertFromAttachment(att)}
+                >
+                  {loadingId === att.id ? (
+                    <span className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
+                  ) : (
+                    <span className="shrink-0 text-xs">🖼</span>
+                  )}
+                  <span className="truncate">{att.filename}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground p-3 text-center">
+            No image attachments yet
+          </p>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 const MainToolbarContent = ({
   onHighlighterClick,
   onLinkClick,
   isMobile,
+  imageAttachments,
+  fetchAttachmentUrl,
+  onInsertAttachmentImage,
 }: {
-  onHighlighterClick: () => void
-  onLinkClick: () => void
-  isMobile: boolean
+  onHighlighterClick: () => void;
+  onLinkClick: () => void;
+  isMobile: boolean;
+  imageAttachments?: { id: string; filename: string }[];
+  fetchAttachmentUrl?: (id: string) => Promise<string>;
+  onInsertAttachmentImage?: (url: string, filename: string) => void;
 }) => {
   return (
     <>
@@ -140,7 +248,12 @@ const MainToolbarContent = ({
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <ImageUploadButton text="Add" />
+        <ImageAddPopover
+          imageAttachments={imageAttachments}
+          fetchAttachmentUrl={fetchAttachmentUrl}
+          onInsert={onInsertAttachmentImage}
+          text="Add"
+        />
       </ToolbarGroup>
 
       <Spacer />
@@ -151,15 +264,15 @@ const MainToolbarContent = ({
         <ThemeToggle />
       </ToolbarGroup>
     </>
-  )
-}
+  );
+};
 
 const MobileToolbarContent = ({
   type,
   onBack,
 }: {
-  type: "highlighter" | "link"
-  onBack: () => void
+  type: "highlighter" | "link";
+  onBack: () => void;
 }) => (
   <>
     <ToolbarGroup>
@@ -181,21 +294,30 @@ const MobileToolbarContent = ({
       <LinkContent />
     )}
   </>
-)
+);
 
 export function SimpleEditor({
   content: initialContent,
   onChange,
+  uploadImage,
+  imageAttachments,
+  fetchAttachmentUrl,
 }: {
-  content?: string
-  onChange?: (json: string) => void
+  content?: string;
+  onChange?: (json: string) => void;
+  uploadImage?: (
+    file: File,
+    onProgress?: (event: { progress: number }) => void,
+  ) => Promise<string>;
+  imageAttachments?: { id: string; filename: string }[];
+  fetchAttachmentUrl?: (id: string) => Promise<string>;
 }) {
-  const isMobile = useIsBreakpoint()
-  const { height } = useWindowSize()
+  const isMobile = useIsBreakpoint();
+  const { height } = useWindowSize();
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">(
-    "main"
-  )
-  const toolbarRef = useRef<HTMLDivElement>(null)
+    "main",
+  );
+  const toolbarRef = useRef<HTMLDivElement>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -230,28 +352,47 @@ export function SimpleEditor({
         accept: "image/*",
         maxSize: MAX_FILE_SIZE,
         limit: 3,
-        upload: handleImageUpload,
+        upload: uploadImage || handleImageUpload,
         onError: (error) => console.error("Upload failed:", error),
       }),
     ],
-    content: initialContent ? (() => {
-      try { return JSON.parse(initialContent) } catch { return initialContent }
-    })() : content,
-    onUpdate: onChange ? ({ editor: ed }) => {
-      onChange(JSON.stringify(ed.getJSON()))
-    } : undefined,
-  })
+    content: initialContent
+      ? (() => {
+          try {
+            return JSON.parse(initialContent);
+          } catch {
+            return initialContent;
+          }
+        })()
+      : content,
+    onUpdate: onChange
+      ? ({ editor: ed }) => {
+          onChange(JSON.stringify(ed.getJSON()));
+        }
+      : undefined,
+  });
 
   const rect = useCursorVisibility({
     editor,
     overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
-  })
+  });
+
+  const handleInsertAttachmentImage = useCallback(
+    (url: string, filename: string) => {
+      editor
+        ?.chain()
+        .focus()
+        .setImage({ src: url, alt: filename, title: filename })
+        .run();
+    },
+    [editor],
+  );
 
   useEffect(() => {
     if (!isMobile && mobileView !== "main") {
-      setMobileView("main")
+      setMobileView("main");
     }
-  }, [isMobile, mobileView])
+  }, [isMobile, mobileView]);
 
   return (
     <div className="simple-editor-wrapper">
@@ -271,6 +412,9 @@ export function SimpleEditor({
               onHighlighterClick={() => setMobileView("highlighter")}
               onLinkClick={() => setMobileView("link")}
               isMobile={isMobile}
+              imageAttachments={imageAttachments}
+              fetchAttachmentUrl={fetchAttachmentUrl}
+              onInsertAttachmentImage={handleInsertAttachmentImage}
             />
           ) : (
             <MobileToolbarContent
@@ -287,5 +431,5 @@ export function SimpleEditor({
         />
       </EditorContext.Provider>
     </div>
-  )
+  );
 }

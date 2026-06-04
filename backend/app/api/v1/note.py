@@ -308,14 +308,14 @@ async def upload_attachment(
         raise HTTPException(status_code=404, detail="Note not found")
 
     content = await file.read()
-    result = await s3_upload(content, file.filename or "file", file.content_type)
+    s3_key = await s3_upload(content, file.filename or "file", file.content_type or "application/octet-stream", org_id, note_id)
 
     attachment = NoteAttachment(
         note_id=note.id,
         filename=file.filename or "file",
-        s3_key=result["s3_key"],
+        s3_key=s3_key,
         content_type=file.content_type,
-        size=result["size"],
+        size=len(content),
     )
     db.add(attachment)
     await db.flush()
